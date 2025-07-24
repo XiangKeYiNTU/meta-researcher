@@ -6,4 +6,4 @@
 
 ## Execution history memory (WIP)
 
-## Plan selection, execution, and error handling
+## Plan selection, execution, and error handling (WIP)
