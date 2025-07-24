@@ -62,6 +62,7 @@ Instructions:
 - If you think a step is unnecessary or redundant with no help in answering the question, set the action to "remove" and specify the position of the step to be removed.
 - If you think a step can be misleading or not effective, set the action to "update" and specify the position of the step to be updated, along with the new goal and instructions.
 - The current date is {today.strftime('%B %d, %Y')}, be careful when the question involves time-sensitive information.
+- The steps are zero-indexed, which means the 0-th step is the first step of the plan.
 - You must output the modification in the following JSON format:
 ```json
 {{
