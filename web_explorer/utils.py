@@ -14,8 +14,8 @@ from openai import OpenAI
 
 import tiktoken
 
-from crawl4ai import AsyncWebCrawler
-import asyncio
+# from crawl4ai import AsyncWebCrawler
+# import asyncio
 
 from schemas import Plan, Step
 
@@ -30,10 +30,13 @@ def extract_action(response: str):
         extracted_info = response.split("<extract>")[1].split("</extract>")[0]
         return ("extract", extracted_info)
     elif "<summary>" in response:
-        final_answer = response.split("<summary>")[1].split("</summary>")[0]
-        return ("summary", final_answer)
+        summary = response.split("<summary>")[1].split("</summary>")[0]
+        return ("summary", summary)
+    elif "<finalize>" in response:
+        final_answer = response.split("<finalize>")[1].split("</finalize>")[0]
+        return ("finalize", final_answer)
     else:
-        return "no action detected"
+        return ("no action detected", None)
 
 
 def truncate_markdown(markdown_text, max_tokens=20000, model="gpt-4o"):
@@ -81,7 +84,7 @@ def summarize_web_content_by_qwen(topic, web_content, openrouter_client):
     # Placeholder for Qwen summarization logic
     # This should be replaced with actual Qwen API call or logic
 
-    summarize_prompt = f"""Summarize the webpage content relevant to the topic '{topic}'.
+    summarize_prompt = f"""Summarize the webpage content relevant to the topic '{topic}'. Also, extract any relevant links or buttons that can be used to navigate or perform actions on the webpage.
 ```web_content
 {web_content}
 ```
@@ -99,7 +102,7 @@ def summarize_web_content_by_qwen(topic, web_content, openrouter_client):
 
 def load_plan(plan_path: str):
     # Read from file
-    with open("plans.json", "r", encoding="utf-8") as f:
+    with open(plan_path, "r", encoding="utf-8") as f:
         loaded_data = json.load(f)
 
     # load plan

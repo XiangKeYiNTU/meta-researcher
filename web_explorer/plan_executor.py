@@ -1,27 +1,49 @@
-import sys
+from pathlib import Path
+from dotenv import load_dotenv
+import os
+from openai import OpenAI
+import json
 
-from utils import *
-from schemas import *
-from prompts import *
-from search_api import *
-from visit_api import *
+# from web_explorer.utils import extract_action, truncate_markdown, summarize_web_content_by_qwen
+# from web_explorer.schemas import Plan, Step
+# import web_explorer.prompts
+# from web_explorer.search_api import get_text_search_results
+# from web_explorer.visit_api import visit
+
+from utils import extract_action, truncate_markdown, summarize_web_content_by_qwen
+from schemas import Plan, Step
+# import prompts
+from web_explorer.prompts import system_prompt
+from search_api import get_text_search_results
+from visit_api import visit
+
+import base64
+
+DIRECT_UPLOAD_SUPPORTED_EXTENSIONS = [".pdf", ".txt", ".docx", ".json", ".jsonl", ".csv", ".doc", ".docx", ".pptx", ".py"]
+
+
+
+# Function to encode the image
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
 
 
 
 
 class PlanRunner:
-    def __init__(self, plan_path: str, question: str, file_path: str = None):
-        self.plan = load_plan(plan_path=plan_path)
+    def __init__(self, plan: Plan, question: str, file_path: str = None):
+        # self.plan = load_plan(plan_path=plan_path)
+        self.plan = plan
         self.question = question
         self.file_path = file_path
         self.finished_steps = []
 
     def execute_one_step(self, openai_client: OpenAI, qwen_client: OpenAI, step: Step, model: str):
-        system_prompt = system_prompt
 
         # build up user prompt
         previous_steps = ""
-        if len(self.finished_step) == 0:
+        if len(self.finished_steps) == 0:
             previous_steps = "You are now executing the first step."
         else:
             for i, finished_step in enumerate(self.finished_steps):
@@ -42,30 +64,56 @@ class PlanRunner:
         search_count = 0
         input = []
         if self.file_path:
-            file = openai_client.files.create(
-                file=open(self.file_path, "rb"),
-                purpose="user_data"
-            )
+            # if self.file_path.endswith(".pdf"):
+            if self.file_path.split(".")[-1] in DIRECT_UPLOAD_SUPPORTED_EXTENSIONS:
+                # Directly upload the file to OpenAI
+                file = openai_client.files.create(
+                    file=open(self.file_path, "rb"),
+                    purpose="user_data"
+                )
 
-            input = [
-                {
-                    "role": "system",
-                    "content": system_prompt,
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "input_file",
-                            "file_id": file.id,
-                        },
-                        {
-                            "type": "input_text",
-                            "text": initial_user_prompt,
-                        },
-                    ]
-                }
-            ]
+                input = [
+                    {
+                        "role": "system",
+                        "content": system_prompt,
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_file",
+                                "file_id": file.id,
+                            },
+                            {
+                                "type": "input_text",
+                                "text": initial_user_prompt,
+                            },
+                        ]
+                    }
+                ]
+            elif self.file_path.endswith(".jpg") or self.file_path.endswith(".png") or self.file_path.endswith(".jpeg"):
+                encoded_image = encode_image(self.file_path)
+                image_url = f"data:image/{self.file_path.split('.')[-1]};base64,{encoded_image}"
+
+                input = [
+                    {
+                        "role": "system",
+                        "content": system_prompt,
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_image",
+                                "image_url": image_url,
+                            },
+                            {
+                                "type": "input_text",
+                                "text": initial_user_prompt,
+                            }
+                        ]
+                    }
+                ]
         else:
             input = [
                 {
@@ -87,6 +135,8 @@ class PlanRunner:
                 }
             ]
 
+        # Record actions taken
+        actions = []
         while True:
             # get response
             response = openai_client.responses.create(
@@ -96,8 +146,11 @@ class PlanRunner:
 
             text = response.output_text
 
+            print(f"Response from model: {text}")
+
             # execute action
             action = extract_action(text)
+            actions.append(action)
             if action[0] == "search":
                 search_count += 1
                 if search_count > 5:
@@ -140,8 +193,18 @@ class PlanRunner:
                 step_results = {"goal": step.goal,
                                 "result": action[1],
                                 "found relevant info": extracted_info,
-                                "search count": search_count}
+                                "search count": search_count,
+                                "actions": actions}
                 self.finished_steps.append(step_results)
+                return step_results
+            elif action[0] == "finalize":
+                step_results = {"goal": step.goal,
+                                "result": f"Final answer: {action[1]}",
+                                "found relevant info": extracted_info,
+                                "search count": search_count,
+                                "actions": actions}
+                self.finished_steps.append(step_results)
+                # print(f"Final answer: {action[1]}")
                 return step_results
             else:
                 input.append({
@@ -150,92 +213,148 @@ class PlanRunner:
                 })
                 continue
 
-    def run(self, openai_client: OpenAI, qwen_client: OpenAI, model: str):
+    def run(self, model: str):
+        # Initialize OpenAI client
+        # Get the path to the parent folder
+        parent_env_path = Path(__file__).resolve().parents[1] / ".env"
+        # Load the .env file from the parent folder
+        load_dotenv(dotenv_path=parent_env_path)
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is not set.")
+
+        # Initialize OpenAI client
+        openai_client = OpenAI(api_key=api_key)
+
+        # Initialize Openrouter client
+        qwen_client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+        )
+
+        final_answer = None
+        step_by_step_results = []
         for i, step in enumerate(self.plan.steps):
             print(f"Starting executing step {i}:\nStep goal: {step.goal}\nStep instructions: {step.instructions}")
             step_results = self.execute_one_step(openai_client=openai_client, qwen_client=qwen_client, step=step, model=model)
+            step_by_step_results.append(step_results)
+            if "Final answer:" in step_results["result"]:
+                print(f"During step {i}, the final answer is found, no need to continue.")
+                print(f"Final answer: {step_results['result']}")
+                final_answer = step_results["result"].split("Final answer: ")[-1].strip()
+                # self.finished_steps.append(step_results)
+                break
             print(f"Step {i} done:\nexecution result: {step_results["result"]}\nfound relevent info:\n{step_results["found relevant info"]}\nwith {step_results["search count"]} searches.")
 
-        previous_steps = ""
-        for i, finished_step in enumerate(self.finished_steps):
-            previous_steps += f"Step {i}\n"
-            previous_steps += f"Goal: {finished_step["goal"]}\n"
-            previous_steps += f"Result: {finished_step["result"]}\n\n"
+        if final_answer:
+            print(f"Final answer: {final_answer}")
 
-
-        finalize_answer_prompt = f"Question: {self.question}\n\n"
-        finalize_answer_prompt += "Previous steps and results:\n"
-        finalize_answer_prompt += previous_steps
-        finalize_answer_prompt += "Please finalize the answer to the question according to the previous steps and their results:\n"
-
-        print("\nFinalizing answer...")
-        input = []
-        if self.file_path:
-            file = openai_client.files.create(
-                file=open(self.file_path, "rb"),
-                purpose="user_data"
-            )
-            input = [{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "input_file",
-                        "file_id": file.id,
-                    },
-                    {
-                        "type": "input_text",
-                        "text": finalize_answer_prompt,
-                    },
-                ]
-            }]
         else:
-            input = [{
-                "role": "user",
-                "content": [
-                    # {
-                    #     "type": "input_file",
-                    #     "file_id": file.id,
-                    # },
-                    {
-                        "type": "input_text",
-                        "text": finalize_answer_prompt,
-                    },
-                ]
-            }]
-        response = openai_client.responses.create(
-            model=model,
-            input=input
-        )
+            previous_steps = ""
+            for i, finished_step in enumerate(self.finished_steps):
+                previous_steps += f"Step {i}\n"
+                previous_steps += f"Goal: {finished_step["goal"]}\n"
+                previous_steps += f"Result: {finished_step["result"]}\n\n"
 
-        print(f"The final answer: {response.output_text}")
+
+            finalize_answer_prompt = f"Question: {self.question}\n\n"
+            finalize_answer_prompt += "Previous steps and results:\n"
+            finalize_answer_prompt += previous_steps
+            finalize_answer_prompt += "Please finalize the answer to the question according to the previous steps and their results:\n"
+
+            print("\nFinalizing answer...")
+            input = []
+            if self.file_path.split(".")[-1] in DIRECT_UPLOAD_SUPPORTED_EXTENSIONS:
+                file = openai_client.files.create(
+                    file=open(self.file_path, "rb"),
+                    purpose="user_data"
+                )
+                input = [{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_file",
+                            "file_id": file.id,
+                        },
+                        {
+                            "type": "input_text",
+                            "text": finalize_answer_prompt,
+                        },
+                    ]
+                }]
+
+            elif self.file_path.endswith(".jpg") or self.file_path.endswith(".png") or self.file_path.endswith(".jpeg"):
+                encoded_image = encode_image(self.file_path)
+                image_url = f"data:image/{self.file_path.split('.')[-1]};base64,{encoded_image}"
+
+                input = [{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_image",
+                            "image_url": image_url,
+                        },
+                        {
+                            "type": "input_text",
+                            "text": finalize_answer_prompt,
+                        },
+                    ]
+                }]
+            else:
+                input = [{
+                    "role": "user",
+                    "content": [
+                        # {
+                        #     "type": "input_file",
+                        #     "file_id": file.id,
+                        # },
+                        {
+                            "type": "input_text",
+                            "text": finalize_answer_prompt,
+                        },
+                    ]
+                }]
+            response = openai_client.responses.create(
+                model=model,
+                input=input
+            )
+            final_answer = response.output_text
+            print(f"The final answer: {response.output_text}")
+
+        step_by_step_results.append({"final_answer": final_answer})
+        return step_by_step_results
 
 
 
 
 if __name__ == "__main__":
-    # Get the path to the parent folder
-    parent_env_path = Path(__file__).resolve().parents[1] / ".env"
 
-    # Load the .env file from the parent folder
-    load_dotenv(dotenv_path=parent_env_path)
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable is not set.")
+    # question = sys.argv[1] if len(sys.argv) > 1 else "What is the capital of France?"
+    # # plan_path = sys.argv[2] if len(sys.argv) else Path(__file__).resolve().parents[1] / "example_plan.json"
+    # file_path = sys.argv[3] if len(sys.argv) > 3 else None
 
-    # Initialize OpenAI client
-    openai_client = OpenAI(api_key=api_key)
+    # model = sys.argv[4] if len(sys.argv) > 4 else "gpt-4o"
 
-    # Initialize Openrouter client
-    qwen_client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=os.getenv("OPENROUTER_API_KEY"),
+    question = "One of the songs on the VNV Nation album Futureperfect has a non-English title. The title references another piece of music. Who composed it? Answer using the format First name Last name."
+    plan = Plan(
+        steps=[
+            Step(
+                goal="Find the song on the VNV Nation album Futureperfect with a non-English title.",
+                instructions="Search for the VNV Nation album Futureperfect and identify the song with a non-English title."
+            ),
+            Step(
+                goal="Identify the piece of music referenced by the song.",
+                instructions="Find out which piece of music is referenced by the identified song."
+            ),
+            Step(
+                goal="Determine who composed the referenced piece of music.",
+                instructions="Search for the composer of the referenced piece of music."
+            )
+        ]
     )
 
-    question = sys.argv[1] if len(sys.argv) > 1 else "What is the capital of France?"
-    plan_path = sys.argv[2] if len(sys.argv) else Path(__file__).resolve().parents[1] / "example_plan.json"
-    file_path = sys.argv[3] if len(sys.argv) > 3 else None
+    file_path = None  # or specify a file path if needed
+    model = "gpt-4o-mini"
 
-    model = sys.argv[4] if len(sys.argv) > 4 else "gpt-4o"
-
-    runner = PlanRunner(plan_path=plan_path, question=question, file_path=file_path)
-    runner.run(openai_client=openai_client, qwen_client=qwen_client, model=model)
+    runner = PlanRunner(plan=plan, question=question, file_path=file_path)
+    runner.run(model=model)

@@ -9,6 +9,7 @@ class ActionType(str, Enum):
     ADD = "add"
     REMOVE = "remove"
     UPDATE = "update"
+    KEEP = "keep" 
 
 class ActionParams(BaseModel):
     position: int = Field(..., description="The position in the plan where the action is applied.")

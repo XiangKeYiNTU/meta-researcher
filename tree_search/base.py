@@ -1,5 +1,6 @@
 import math
 
+# from tree_search.schemas import Plan, Step, PlanScore, ModificationResponse, ActionType, ActionParams
 from schemas import Plan, Step, PlanScore, ModificationResponse, ActionType, ActionParams
 
 EXPLORATION_CONSTANT = 1.41  # Commonly used exploration constant in UCT
@@ -128,6 +129,35 @@ class SearchTree:
                 traverse(child, depth + 1)
 
         traverse(self.root)
+
+    def select_top_k(self, top_k : int = 3):
+        """
+        Select the top k nodes based on their scores.
+        """
+        # Select the top k nodes based on their scores
+        top_k_nodes = []
+
+        def traverse(node):
+            if len(top_k_nodes) < top_k:
+                top_k_nodes.append(node)
+            else:
+                # Find the node with the lowest score and replace it if the current node has a higher score
+                min_index = min(range(len(top_k_nodes)), key=lambda i: top_k_nodes[i].score.effectiveness + top_k_nodes[i].score.completeness + top_k_nodes[i].score.executability)
+                if node.score.effectiveness + node.score.completeness + node.score.executability > top_k_nodes[min_index].score.effectiveness + top_k_nodes[min_index].score.completeness + top_k_nodes[min_index].score.executability:
+                    top_k_nodes[min_index] = node
+            for child in node.children:
+                traverse(child)
+
+        traverse(self.root)
+        
+        # Select the top k plans
+        top_k_plans = [node.get_plan() for node in top_k_nodes]
+
+        return top_k_plans
+        # with open(save_path, 'w') as f:
+        #     f.write("[\n" + ",\n".join(serialized_plans) + "\n]")
+        
+        
 
 if __name__ == "__main__":
     # debug

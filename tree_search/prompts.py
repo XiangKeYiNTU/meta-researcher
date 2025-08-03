@@ -55,19 +55,21 @@ You are given:
 Your task:
 1. Analyze the question, the provided file/image, and the existing plan.
 2. Modify the plan by adding, removing, or updating exactly one step to improve the plan's effectiveness.
+3. If you think the plan is correct, complete, and effective enough, you can keep the plan unchanged.
 
 Instructions:
 - Every step must be able to execute within two searches, not redundant and effective in answering the question.
 - If you think the plan is missing a necessary step, which is crucial to acquire the necessary information to answer the question, set the action to "add" and specify the added step's position, goal, and instructions.
 - If you think a step is unnecessary or redundant with no help in answering the question, set the action to "remove" and specify the position of the step to be removed.
 - If you think a step can be misleading or not effective, set the action to "update" and specify the position of the step to be updated, along with the new goal and instructions.
+- If you think the plan is correct, complete, and effective enough, set the action to "keep" and other parameters to any values.
 - The current date is {today.strftime('%B %d, %Y')}, be careful when the question involves time-sensitive information.
 - The steps are zero-indexed, which means the 0-th step is the first step of the plan.
 - You must output the modification in the following JSON format:
 ```json
 {{
   "rationale": "Your rationale for the modification",
-  "action": "add|remove|update",
+  "action": "add|remove|update|keep",
   "action_params": {{
     "position": 0, // The position in the plan where the action is applied
     "goal": "New goal for the step",

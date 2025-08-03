@@ -1,10 +1,18 @@
 import os
-import sys
+# import sys
+import argparse
 from dotenv import load_dotenv
 from pathlib import Path
 from openai import OpenAI
 
+# from tree_search.base import InitialNode, ModifiedNode, BaseTreeNode, SearchTree
 from base import InitialNode, ModifiedNode, BaseTreeNode, SearchTree
+# from tree_search.llm_utils import (
+#     generate_initial_plan,
+#     modify_plan,
+#     evaluate_plan
+# )
+
 from llm_utils import (
     generate_initial_plan,
     modify_plan,
@@ -74,10 +82,31 @@ class MetaPlanningRunner:
         # Print out the final search tree
         search_tree.print_tree()
 
-if __name__ == "__main__":
-    question = sys.argv[1] if len(sys.argv) > 1 else "What is the capital of France?"
-    file_path = sys.argv[2] if len(sys.argv) > 2 else None
-    model = sys.argv[3] if len(sys.argv) > 3 else "gpt-4o-mini"
+        # Select the top k plans
+        top_k_plans = search_tree.select_top_k(top_k=3)
 
-    runner = MetaPlanningRunner(question=question, file_path=file_path, model=model)
+        return top_k_plans
+
+        # if save:
+        #     plan_folder = Path(__file__).resolve().parent / "plans"
+        #     plan_folder.mkdir(parents=True, exist_ok=True)
+
+        #     save_path = plan_folder / f"top_3_{self.question.replace(' ', '_')}.json"
+        #     search_tree.serialize(save_path, top_k=3)
+
+if __name__ == "__main__":
+    # question = sys.argv[1] if len(sys.argv) > 1 else "What is the capital of France?"
+    # file_path = sys.argv[2] if len(sys.argv) > 2 else None
+    # model = sys.argv[3] if len(sys.argv) > 3 else "gpt-4o-mini"
+
+    arg_parser = argparse.ArgumentParser(description="Meta Planning Runner")
+    arg_parser.add_argument("--question", type=str, required=True, help="The question to answer.")
+    arg_parser.add_argument("--file_path", type=str, default=None, help="Path to the file to use for context.")
+    arg_parser.add_argument("--model", type=str, default="gpt-4o-mini", help="The model to use for LLM operations.")
+    # arg_parser.add_argument("--save", action='store_true', help="Whether to save the search tree to a file.")
+
+    args = arg_parser.parse_args()
+
+    # Initialize the MetaPlanningRunner with the provided arguments
+    runner = MetaPlanningRunner(question=args.question, file_path=args.file_path, model=args.model)
     runner.run()
