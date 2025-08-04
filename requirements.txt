@@ -1,0 +1,7 @@
+openai==1.97.1
+pydantic==2.11.7
+python-dotenv==0.21.0
+google_search_results==2.4.2
+requests==2.32.3
+python-pptx==1.0.2
+pdfplumber==0.11.7

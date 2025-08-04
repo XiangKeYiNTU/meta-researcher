@@ -3,15 +3,15 @@ import re
 import json
 from openai import OpenAI
 from pydantic import BaseModel, Field
-# from tree_search.schemas import Plan, Step, ModificationResponse, PlanScore
-from schemas import Plan, Step, ModificationResponse, PlanScore
+from tree_search.schemas import Plan, Step, ModificationResponse, PlanScore
+# from schemas import Plan, Step, ModificationResponse, PlanScore
 # from tree_search.prompts import (
 #     initial_planning_prompt,
 #     expand_prompt,
 #     evaluate_plan_prompt
 # )
 
-from tree_search.prompts import (
+from tree_search.openai.prompts import (
     initial_planning_prompt,
     expand_prompt,
     evaluate_plan_prompt
@@ -20,8 +20,8 @@ from tree_search.prompts import (
 import base64
 # import xmltodict
 
-DIRECT_UPLOAD_SUPPORTED_EXTENSIONS = [".pdf", ".txt", ".docx", ".json", ".jsonl", ".csv", ".doc", ".docx", ".pptx", ".py"]
-
+# DIRECT_UPLOAD_SUPPORTED_EXTENSIONS = [".pdf", ".txt", ".docx", ".json", ".jsonl", ".csv", ".doc", ".docx", ".pptx", ".py"]
+UTF8_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".jsonl", "jsonld", ".xml", ".py"]
 
 # Function to encode the image
 def encode_image(image_path):
@@ -45,8 +45,8 @@ def generate_structured_response(openai_client: OpenAI, user_prompt: str, schema
     """
 
     if file_path:
-        # if file_path.endswith(".pdf"):
-        if file_path.split(".")[-1] in DIRECT_UPLOAD_SUPPORTED_EXTENSIONS:
+        if file_path.endswith(".pdf"):
+        # if file_path.split(".")[-1] in DIRECT_UPLOAD_SUPPORTED_EXTENSIONS:
             file = openai_client.files.create(
                 file=open(file_path, "rb"),
                 purpose="user_data"
@@ -155,17 +155,39 @@ def generate_structured_response(openai_client: OpenAI, user_prompt: str, schema
             else:
                 raise ValueError("No valid schema found in the response, please try again.")
 
-
-            
-        else:
+        elif file_path.split(".")[-1] in UTF8_EXTENSIONS:
+            # If the file is a UTF-8 encoded text file, read it and include its content in the prompt
             with open(file_path, "r", encoding="utf-8") as f:
                 file_content = f.read()
-
+            
             response = openai_client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"{user_prompt}\n\nFile content:\n{file_content}"}
+                ],
+            )
+
+            text = response.choices[0].message.content
+            match = re.search(r'\{.*\}', text, re.DOTALL)
+            if match:
+                json_str = match.group()
+                obj = json.loads(json_str)
+                try:
+                    res = schema.model_validate(obj)
+                    return res
+                except Exception as e:
+                    raise ValueError(f"Failed to validate schema: {e}")
+
+            else:
+                raise ValueError("No valid schema found in the response, please try again.")
+
+        else:
+            response = openai_client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"{user_prompt}\n\nFile path:\n{file_path}"}
                 ],
             )
 
@@ -212,7 +234,7 @@ def generate_initial_plan(
     # prompt: str,
     question: str,
     file_path: str = None,
-    model: str = "gpt-4",
+    model: str = "gpt-4o-mini",
     # temperature: float = 0.7,
 ) -> Plan:
     # build up prompt
@@ -234,7 +256,7 @@ def modify_plan(
     question: str,
     plan: Plan,
     file_path: str = None,
-    model: str = "gpt-4",
+    model: str = "gpt-4o-mini",
 ) -> ModificationResponse:
     # build up prompt
     system_prompt = expand_prompt
@@ -259,7 +281,7 @@ def evaluate_plan(
     question: str,
     plan: Plan,
     file_path: str = None,
-    model: str = "gpt-4",
+    model: str = "gpt-4o-mini",
 ) -> PlanScore:
     # build up prompt
     system_prompt = evaluate_plan_prompt

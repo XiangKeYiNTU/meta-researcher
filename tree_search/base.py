@@ -1,7 +1,7 @@
 import math
 
-# from tree_search.schemas import Plan, Step, PlanScore, ModificationResponse, ActionType, ActionParams
-from schemas import Plan, Step, PlanScore, ModificationResponse, ActionType, ActionParams
+from tree_search.schemas import Plan, Step, PlanScore, ModificationResponse, ActionType, ActionParams
+# from schemas import Plan, Step, PlanScore, ModificationResponse, ActionType, ActionParams
 
 EXPLORATION_CONSTANT = 1.41  # Commonly used exploration constant in UCT
 

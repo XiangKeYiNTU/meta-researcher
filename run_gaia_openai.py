@@ -1,14 +1,14 @@
 import argparse
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'tree_search')))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'web_explorer')))
+# import sys
+# import os
+# sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'tree_search')))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'web_explorer')))
 
-from tree_search.meta_planning_runner import MetaPlanningRunner
+from tree_search.openai.meta_planning_runner import MetaPlanningRunner
 
 
-from web_explorer.plan_executor import PlanRunner
+from web_explorer.openai.plan_executor import PlanRunner
 
 from datasets import load_dataset
 

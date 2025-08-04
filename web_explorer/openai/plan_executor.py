@@ -4,31 +4,31 @@ import os
 from openai import OpenAI
 import json
 
-# from web_explorer.utils import extract_action, truncate_markdown, summarize_web_content_by_qwen
-# from web_explorer.schemas import Plan, Step
+from web_explorer.utils import extract_action, truncate_markdown, summarize_web_content_by_qwen
+from web_explorer.schemas import Plan, Step
 # import web_explorer.prompts
-# from web_explorer.search_api import get_text_search_results
-# from web_explorer.visit_api import visit
+from web_explorer.search_api import get_text_search_results
+from web_explorer.visit_api import visit
 
-from utils import extract_action, truncate_markdown, summarize_web_content_by_qwen
-from schemas import Plan, Step
-# import prompts
+# from utils import extract_action, truncate_markdown, summarize_web_content_by_qwen
+# from schemas import Plan, Step
+# # import prompts
 from web_explorer.prompts import system_prompt
-from search_api import get_text_search_results
-from visit_api import visit
+# from search_api import get_text_search_results
+# from visit_api import visit
+
+from document_tools.document_parser import DocumentParser
 
 import base64
 
-DIRECT_UPLOAD_SUPPORTED_EXTENSIONS = [".pdf", ".txt", ".docx", ".json", ".jsonl", ".csv", ".doc", ".docx", ".pptx", ".py"]
-
+# DIRECT_UPLOAD_SUPPORTED_EXTENSIONS = [".pdf", ".txt", ".doc", ".docx", ".json", ".pptx", ".py", ".md"]
+UTF8_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".jsonl", "jsonld", ".xml", ".py"]
 
 
 # Function to encode the image
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
-
-
 
 
 class PlanRunner:
@@ -38,6 +38,7 @@ class PlanRunner:
         self.question = question
         self.file_path = file_path
         self.finished_steps = []
+        self.document_parser = DocumentParser()
 
     def execute_one_step(self, openai_client: OpenAI, qwen_client: OpenAI, step: Step, model: str):
 
@@ -64,8 +65,8 @@ class PlanRunner:
         search_count = 0
         input = []
         if self.file_path:
-            # if self.file_path.endswith(".pdf"):
-            if self.file_path.split(".")[-1] in DIRECT_UPLOAD_SUPPORTED_EXTENSIONS:
+            if self.file_path.endswith(".pdf"):
+            # if self.file_path.split(".")[-1] in DIRECT_UPLOAD_SUPPORTED_EXTENSIONS:
                 # Directly upload the file to OpenAI
                 file = openai_client.files.create(
                     file=open(self.file_path, "rb"),
@@ -111,6 +112,102 @@ class PlanRunner:
                                 "type": "input_text",
                                 "text": initial_user_prompt,
                             }
+                        ]
+                    }
+                ]
+
+            elif self.file_path.split(".")[-1] in UTF8_EXTENSIONS:
+                # Read the file content
+                with open(self.file_path, "r", encoding="utf-8") as f:
+                    file_content = f.read()
+
+                input = [
+                    {
+                        "role": "system",
+                        "content": system_prompt,
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": initial_user_prompt + f"\n\nFile content:\n{file_content}",
+                            },
+                        ]
+                    }
+                ]
+
+            elif self.file_path.endswith(".xlsx"):
+                # Parse the Excel file using DocumentParser
+                excel_content = self.document_parser.parse_excel_using_pandas(self.file_path)
+                input = [
+                    {
+                        "role": "system",
+                        "content": system_prompt,
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": initial_user_prompt + f"\n\nExcel content:\n{excel_content}",
+                            },
+                        ]
+                    }
+                ]
+
+            elif self.file_path.endswith(".pptx"):
+                # Parse the PPT file using DocumentParser
+                ppt_content = self.document_parser.parse_ppt(self.file_path)
+                input = [
+                    {
+                        "role": "system",
+                        "content": system_prompt,
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": initial_user_prompt + f"\n\nPPT content:\n{'\n'.join(ppt_content)}",
+                            },
+                        ]
+                    }
+                ]
+
+            elif self.file_path.endswith(".zip"):
+                # Parse the ZIP file using DocumentParser
+                zip_content = self.document_parser.parse_zip(self.file_path)
+                zip_content_str = "\n".join([f"{file}: {content}" for item in zip_content for file, content in item.items()])
+                input = [
+                    {
+                        "role": "system",
+                        "content": system_prompt,
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": initial_user_prompt + f"\n\nZIP content:\n{zip_content_str}",
+                            },
+                        ]
+                    }
+                ]
+
+            else:
+                input = [
+                    {
+                        "role": "system",
+                        "content": system_prompt,
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": initial_user_prompt + f"\n\nFile path:\n{self.file_path}\nThis file type is not supported for direct upload. If you can't solve the question without the file, please use <finalize> to output an approximated answer.",
+                            },
                         ]
                     }
                 ]
@@ -216,7 +313,7 @@ class PlanRunner:
     def run(self, model: str):
         # Initialize OpenAI client
         # Get the path to the parent folder
-        parent_env_path = Path(__file__).resolve().parents[1] / ".env"
+        parent_env_path = Path(__file__).resolve().parents[2] / ".env"
         # Load the .env file from the parent folder
         load_dotenv(dotenv_path=parent_env_path)
         api_key = os.getenv("OPENAI_API_KEY")

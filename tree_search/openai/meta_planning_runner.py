@@ -5,15 +5,15 @@ from dotenv import load_dotenv
 from pathlib import Path
 from openai import OpenAI
 
-# from tree_search.base import InitialNode, ModifiedNode, BaseTreeNode, SearchTree
-from base import InitialNode, ModifiedNode, BaseTreeNode, SearchTree
+from tree_search.base import InitialNode, ModifiedNode, BaseTreeNode, SearchTree
+# from base import InitialNode, ModifiedNode, BaseTreeNode, SearchTree
 # from tree_search.llm_utils import (
 #     generate_initial_plan,
 #     modify_plan,
 #     evaluate_plan
 # )
 
-from llm_utils import (
+from tree_search.openai.llm_utils import (
     generate_initial_plan,
     modify_plan,
     evaluate_plan
@@ -29,7 +29,7 @@ class MetaPlanningRunner:
     
     def run(self):
         # Get the path to the parent folder
-        parent_env_path = Path(__file__).resolve().parents[1] / ".env"
+        parent_env_path = Path(__file__).resolve().parents[2] / ".env"
 
         # Load the .env file from the parent folder
         load_dotenv(dotenv_path=parent_env_path)

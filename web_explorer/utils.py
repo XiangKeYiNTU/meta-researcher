@@ -17,7 +17,7 @@ import tiktoken
 # from crawl4ai import AsyncWebCrawler
 # import asyncio
 
-from schemas import Plan, Step
+from web_explorer.schemas import Plan, Step
 
 def extract_action(response: str):
     if "<search>" in response:
