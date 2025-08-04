@@ -31,6 +31,8 @@ ENV/
 # Runtime Temporary files
 tmp/
 /document_tools/camel_working_dir/
+temp/
+/temp/
 
 # IDE
 .idea/
@@ -63,3 +65,7 @@ owl/camel/types/__pycache__/
 owl/camel/__pycache__/
 owl/camel/utils/__pycache_/
 
+WebThinker/
+/WebThinker/
+dataset/
+/dataset/
