@@ -234,6 +234,8 @@ class PlanRunner:
 
         # Record actions taken
         actions = []
+        search_cache = {}
+        visit_cache = {}
         while True:
             # get response
             response = openai_client.responses.create(
@@ -247,7 +249,8 @@ class PlanRunner:
 
             # execute action
             action = extract_action(text)
-            actions.append(action)
+            # actions.append(action)
+            action_step = {"action": action[0], "param": action[1] if len(action) > 1 else None}
             if action[0] == "search":
                 search_count += 1
                 if search_count > 5:
@@ -256,25 +259,51 @@ class PlanRunner:
                         "content": "Search quota reached. Please provide a final answer using <summary>."
                     }
                     input.append(user_message)
+                    action_step["action_result"] = "search quota reached"
+                    actions.append(action_step)
                     continue
                 else:
-                    search_results = get_text_search_results(action[1])
-                    result_string = json.dumps(search_results, indent=2)
+                    if action[1] in search_cache:
+                        search_results = search_cache[action[1]]
+                        result_string = json.dumps(search_results, indent=2)
+                        user_prompt = "WARNING: repeated search\n" + "```search_results\n" + result_string + "\n```"
+                    else:
+                        search_results = get_text_search_results(action[1])
+                        search_cache[action[1]] = search_results
+                        result_string = json.dumps(search_results, indent=2)
+                        user_prompt = "```search_results\n" + result_string + "\n```"
                     input.append({
                         "role": "user",
-                        "content": "```search_results\n" + result_string + "\n```"
+                        "content": user_prompt
                     })
+                    action_step["action_result"] = result_string
+                    actions.append(action_step)
+                    # search_cache[action[1]] = search_results
                     continue
             elif action[0] == "visit":
-                raw_content = visit(action[1])
-                short_content = truncate_markdown(raw_content, max_tokens=20000)
-                web_summary = summarize_web_content_by_qwen(
-                    step.goal, short_content, qwen_client
-                )
+                if action[1] in visit_cache:
+                    raw_content = visit_cache[action[1]]
+                    print("WARNING: repeated visit")
+                    short_content = truncate_markdown(raw_content, max_tokens=20000)
+                    web_summary = summarize_web_content_by_qwen(
+                        step.goal, short_content, qwen_client
+                    )
+                    user_prompt = "WARNING: repeated visit\n" + "Here's a summary of the requested website:\n```web_content\n" + str(web_summary) + "\n```"
+                else:
+                    raw_content = visit(action[1])
+                    visit_cache[action[1]] = raw_content
+                # raw_content = visit(action[1])
+                    short_content = truncate_markdown(raw_content, max_tokens=20000)
+                    web_summary = summarize_web_content_by_qwen(
+                        step.goal, short_content, qwen_client
+                    )
+                    user_prompt = "Here's a summary of the requested website:\n```web_content\n" + str(web_summary) + "\n```"
                 input.append({
                     "role": "user",
-                    "content": "Here's a summary of the requested website:\n```web_content\n" + str(web_summary) + "\n```"
+                    "content": user_prompt
                 })
+                action_step["action_result"] = web_summary
+                actions.append(action_step)
                 continue
             elif action[0] == "extract":
                 extracted_info.append(action[1])
@@ -285,6 +314,8 @@ class PlanRunner:
                     "role": "user",
                     "content": user_message
                 })
+                action_step["action_result"] = extracted_info
+                actions.append(action_step)
                 continue
             elif action[0] == "summary":
                 step_results = {"goal": step.goal,
@@ -361,7 +392,8 @@ class PlanRunner:
 
             print("\nFinalizing answer...")
             input = []
-            if self.file_path.split(".")[-1] in DIRECT_UPLOAD_SUPPORTED_EXTENSIONS:
+            if self.file_path and self.file_path.endswith(".pdf"):
+            # if self.file_path.split(".")[-1] in DIRECT_UPLOAD_SUPPORTED_EXTENSIONS:
                 file = openai_client.files.create(
                     file=open(self.file_path, "rb"),
                     purpose="user_data"
@@ -380,7 +412,7 @@ class PlanRunner:
                     ]
                 }]
 
-            elif self.file_path.endswith(".jpg") or self.file_path.endswith(".png") or self.file_path.endswith(".jpeg"):
+            elif self.file_path and (self.file_path.endswith(".jpg") or self.file_path.endswith(".png") or self.file_path.endswith(".jpeg")):
                 encoded_image = encode_image(self.file_path)
                 image_url = f"data:image/{self.file_path.split('.')[-1]};base64,{encoded_image}"
 
