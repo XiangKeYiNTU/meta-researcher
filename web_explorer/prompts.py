@@ -32,6 +32,11 @@ Instructions:
     - After finalizing, the answering process of the whole question will end, and your final answer would be the answer to the question.
 - The current date is {today.strftime('%B %d, %Y')}, be careful when the step has time-specific requirements.
 
+WARNING:
+- Stick to the current step, don't overdo, if the goal of the current step is reached, immediately output the result of the current step using `<summary>`.
+- Only use `<finalize>` when you ACCIDENTALLY run into the final answer of the original question.
+- Finalize the answer as concise as possible by only containing the corresponding names, numbers, dates, etc.
+
 ---
 
 Example responses:

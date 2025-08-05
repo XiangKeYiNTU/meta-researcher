@@ -49,8 +49,8 @@ class PlanRunner:
         else:
             for i, finished_step in enumerate(self.finished_steps):
                 previous_steps += f"Step {i}\n"
-                previous_steps += f"Goal: {finished_step["goal"]}\n"
-                previous_steps += f"Result: {finished_step["result"]}\n\n"
+                previous_steps += f"Goal: {finished_step['goal']}\n"
+                previous_steps += f"Result: {finished_step['result']}\n\n"
 
         current_step = f"Step goal: {step.goal}\n"
         current_step += f"Instructions: {step.instructions}"
@@ -159,6 +159,7 @@ class PlanRunner:
             elif self.file_path.endswith(".pptx"):
                 # Parse the PPT file using DocumentParser
                 ppt_content = self.document_parser.parse_ppt(self.file_path)
+                joined_content = '\n'.join(ppt_content)
                 input = [
                     {
                         "role": "system",
@@ -169,7 +170,7 @@ class PlanRunner:
                         "content": [
                             {
                                 "type": "input_text",
-                                "text": initial_user_prompt + f"\n\nPPT content:\n{'\n'.join(ppt_content)}",
+                                "text": initial_user_prompt + f"\n\nPPT content:\n{joined_content}",
                             },
                         ]
                     }
@@ -372,7 +373,7 @@ class PlanRunner:
                 final_answer = step_results["result"].split("Final answer: ")[-1].strip()
                 # self.finished_steps.append(step_results)
                 break
-            print(f"Step {i} done:\nexecution result: {step_results["result"]}\nfound relevent info:\n{step_results["found relevant info"]}\nwith {step_results["search count"]} searches.")
+            print(f"Step {i} done:\nexecution result: {step_results['result']}\nfound relevent info:\n{step_results['found relevant info']}\nwith {step_results['search count']} searches.")
 
         if final_answer:
             print(f"Final answer: {final_answer}")
@@ -381,8 +382,8 @@ class PlanRunner:
             previous_steps = ""
             for i, finished_step in enumerate(self.finished_steps):
                 previous_steps += f"Step {i}\n"
-                previous_steps += f"Goal: {finished_step["goal"]}\n"
-                previous_steps += f"Result: {finished_step["result"]}\n\n"
+                previous_steps += f"Goal: {finished_step['goal']}\n"
+                previous_steps += f"Result: {finished_step['result']}\n\n"
 
 
             finalize_answer_prompt = f"Question: {self.question}\n\n"

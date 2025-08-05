@@ -7,13 +7,8 @@ from openai import OpenAI
 
 from tree_search.base import InitialNode, ModifiedNode, BaseTreeNode, SearchTree
 # from base import InitialNode, ModifiedNode, BaseTreeNode, SearchTree
-# from tree_search.llm_utils import (
-#     generate_initial_plan,
-#     modify_plan,
-#     evaluate_plan
-# )
 
-from tree_search.openai.llm_utils import (
+from tree_search.openai.openai_utils import (
     generate_initial_plan,
     modify_plan,
     evaluate_plan
