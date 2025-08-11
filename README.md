@@ -12,8 +12,8 @@
 ## Reproduction
 
 🔌Currently supported providers:
-    - OpenAI
-    - Qwen series (WIP)
+- OpenAI
+- Qwen series (WIP)
 
 For reproducing results on GAIA benchmark:
 
