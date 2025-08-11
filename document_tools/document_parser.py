@@ -5,9 +5,10 @@
 #     ImageAnalysisToolkit
 # )
 
-# import xmltodict
-# import json
+import xmltodict
+import json
 from pptx import Presentation
+from docx import Document
 from pathlib import Path
 # import subprocess
 import zipfile
@@ -22,7 +23,7 @@ from dotenv import load_dotenv
 import base64
 
 # Extensions that can be directly decoded by UTF-8
-UTF8_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".jsonl", "jsonld", ".xml", ".py"]
+UTF8_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".jsonl", "jsonld", ".py"]
 
 # Get the path to the parent folder
 parent_env_path = Path(__file__).resolve().parents[1] / ".env"
@@ -63,19 +64,18 @@ class DocumentParser:
             content = f.read()
         return content
     
-    # TODO: parse excel, ppt, pdf, images, docx
 
     def parse_excel_using_pandas(self, file_path: str):
         """
         Parses an Excel file using pandas and returns a DataFrame.
         """
         try:
-            df = pd.read_excel(file_path, engine='openpyxl')
+            df = pd.read_excel(file_path)
             return df.to_string(index=False)  # Convert DataFrame to string for easier readability
         except Exception as e:
             print(f"Error parsing Excel file: {e}")
             return None
-        
+
     def parse_image_using_qwen(self, image_path: str):
         """
         Uses Qwen model to analyze an image and return a description.
@@ -128,6 +128,15 @@ class DocumentParser:
                 page_contents.append(combined.strip())
 
         return "\n\n".join(page_contents)
+    
+    def parse_xml(self, file_path: str):
+        data = None
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        f.close()
+
+        data = xmltodict.parse(content)
+        return json.dumps(data, indent=2)
 
     # def parse_excel(self, file_path):
     #     # return a report of the Excel file content
@@ -193,7 +202,7 @@ class DocumentParser:
                     slide_content += f"Image {shape_num+1} content: {image_content}\n"
             content.append(slide_content)
 
-        return content
+        return '\n\n'.join(content)
 
     def _unzip_file(self, zip_path: str):
         if not zip_path.endswith(".zip"):
@@ -236,17 +245,76 @@ class DocumentParser:
             content = ""
             if file.endswith(tuple(UTF8_EXTENSIONS)):
                 content = self._utf8_decode(file)
-            elif file.endswith(".xlsx"):
+            elif file.endswith(".xlsx") or file.endswith(".xls") or file.endswith(".xlsm"):
                 content = self.parse_excel_using_pandas(file)
             elif file.endswith(".pptx") or file.endswith(".ppt"):
-                content = self.parse_ppt(file).join("\n")
+                content = self.parse_ppt(file)
             elif file.endswith(".jpg") or file.endswith(".png") or file.endswith(".jpeg"):
                 content = self.parse_image_using_qwen(file)
+            elif file.endswith(".pdf"):
+                content = self.parse_pdf(file)
+            elif file.endswith(".docx") or file.endswith(".doc"):
+                content = self.parse_doc(file)
+            elif file.endswith(".xml"):
+                content = self.parse_xml(file)
             else:
                 content = f"Unsupported file type: {file}"
-            results.append({file: content})
-        return results
-    
+            results.append({os.path.basename(file): content})
+        return json.dumps(results, indent=2)
+
+    def parse_doc(self, doc_path: str):
+        """
+        Parse a Word document (.docx) and extract its text content.
+        
+        Args:
+            doc_path (str): Path to the Word document.
+        
+        Returns:
+            str: Extracted text content from the document.
+        """
+        try:
+            doc = Document(doc_path)
+        except Exception as e:
+            raise ValueError(f"Error opening document '{doc_path}': {e}")
+
+        paragraphs = []
+        for para in doc.paragraphs:
+            text = para.text.strip()
+            if text:  # Ignore empty paragraphs
+                paragraphs.append(text)
+
+        # Optionally handle tables too
+        for table in doc.tables:
+            for row in table.rows:
+                row_text = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                if row_text:
+                    paragraphs.append(" | ".join(row_text))
+
+        return "\n".join(paragraphs)
+
+    def parse_file(self, file_path: str):
+        """
+        Parse a file based on its extension.
+        """
+        ext = Path(file_path).suffix.lower()
+        if ext in UTF8_EXTENSIONS:
+            return self._utf8_decode(file_path)
+        elif ext in [".xlsx", ".xls", ".xlsm", ".csv"]:
+            return self.parse_excel_using_pandas(file_path)
+        elif ext in [".pptx", ".ppt"]:
+            return self.parse_ppt(file_path)
+        elif ext in [".jpg", ".png", ".jpeg"]:
+            return self.parse_image_using_qwen(file_path)
+        elif ext == ".pdf":
+            return self.parse_pdf(file_path)
+        elif ext in [".docx", ".doc"]:
+            return self.parse_doc(file_path)
+        elif ext == ".zip":
+            return self.parse_zip(file_path)
+        elif ext in [".xml"]:
+            return self.parse_xml(file_path)
+        else:
+            return f"Unsupported file type: {ext}"
 
     # def parse_doc(self, doc_path: str):
 
@@ -284,6 +352,6 @@ if __name__ == "__main__":
 
     parser = DocumentParser()
     # Example usage
-    file_path = "C:\\Users\\keyix\\Desktop\\meta_deep_research\\meta_tree_search\\dataset\\GAIA\\2023\\validation\\67e8878b-5cef-4375-804e-e6291fdbe78a.pdf"  # Change this to your file path
-    result = parser.parse_pdf(file_path)
+    file_path = ""  # Change this to your file path
+    result = parser.parse_file(file_path)
     print(result)

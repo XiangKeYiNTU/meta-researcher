@@ -156,7 +156,41 @@ class SearchTree:
         return top_k_plans
         # with open(save_path, 'w') as f:
         #     f.write("[\n" + ",\n".join(serialized_plans) + "\n]")
-        
+
+    def select_top_plans(self):
+        """
+        Select all plans with the highest total score in the tree.
+        Returns a list of Plan objects.
+        """
+        all_nodes = []
+
+        # Step 1: Gather all nodes
+        def traverse(node):
+            all_nodes.append(node)
+            for child in node.children:
+                traverse(child)
+
+        traverse(self.root)
+
+        if not all_nodes:
+            return []
+
+        # Step 2: Compute scores for each node
+        def total_score(node):
+            return (
+                node.score.effectiveness
+                + node.score.completeness
+                + node.score.executability
+            )
+
+        # Step 3: Find the highest score
+        max_score = max(total_score(n) for n in all_nodes)
+
+        # Step 4: Return plans with this score
+        top_plans = [n.get_plan() for n in all_nodes if total_score(n) == max_score]
+
+        return top_plans
+
         
 
 if __name__ == "__main__":

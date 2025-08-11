@@ -2,9 +2,10 @@
 
 ## Features
 
-🤖 A meta-agent that provides detailed steps and instructions for a specified task using transferable memory.
+🤖 A meta-agent that provides detailed steps and instructions for a specified task using transferable memory through tree-search planning and plan merging.
 
-![Meta Planning](./assets/tree_planning.png)
+![Tree Planning](./assets/tree_planning.png)
+![Plan Merging](./assets/meta_graph.png)
 
 🔎 A web exploring agent that is able to conduct web search and visit websites.
 
@@ -23,7 +24,7 @@ git clone https://github.com/XiangKeYiNTU/meta-researcher.git
 cd meta-researcher
 ```
 
-2. Download the GAIA benchmark from ![GAIA](https://huggingface.co/datasets/gaia-benchmark/GAIA/tree/main), make a `dataset` folder under the repo folder, and move the downloaded dataset into it.
+2. Download the GAIA benchmark, make a `dataset` folder under the repo folder, and move the downloaded dataset into it.
 
 When finished, check if the benchmark is downloaded and moved correctly:
 

@@ -4,8 +4,9 @@ import os
 from openai import OpenAI
 import json
 
+from tree_search.schemas import Plan, Step
+
 from web_explorer.utils import extract_action, truncate_markdown, summarize_web_content_by_qwen
-from web_explorer.schemas import Plan, Step
 # import web_explorer.prompts
 from web_explorer.search_api import get_text_search_results
 from web_explorer.visit_api import visit
@@ -14,21 +15,14 @@ from web_explorer.visit_api import visit
 # from schemas import Plan, Step
 # # import prompts
 from web_explorer.prompts import system_prompt
+from web_explorer.utils import encode_image
 # from search_api import get_text_search_results
 # from visit_api import visit
 
 from document_tools.document_parser import DocumentParser
 
-import base64
-
 # DIRECT_UPLOAD_SUPPORTED_EXTENSIONS = [".pdf", ".txt", ".doc", ".docx", ".json", ".pptx", ".py", ".md"]
 UTF8_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".jsonl", "jsonld", ".xml", ".py"]
-
-
-# Function to encode the image
-def encode_image(image_path):
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
 
 
 class PlanRunner:

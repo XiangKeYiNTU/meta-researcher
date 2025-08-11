@@ -13,11 +13,18 @@ import json
 from openai import OpenAI
 
 import tiktoken
+import base64
 
 # from crawl4ai import AsyncWebCrawler
 # import asyncio
 
 from web_explorer.schemas import Plan, Step
+
+# Function to encode the image
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
+
 
 def extract_action(response: str):
     if "<search>" in response:

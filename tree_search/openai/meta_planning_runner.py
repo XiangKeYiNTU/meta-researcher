@@ -16,32 +16,22 @@ from tree_search.openai.openai_utils import (
 
 
 
+
+
 class MetaPlanningRunner:
-    def __init__(self, question: str, file_path: str = None, model: str = "gpt-4"):
+    def __init__(self, question: str, openai_client: OpenAI, file_path: str = None, model: str = "gpt-4"):
         self.question = question
         self.file_path = file_path
         self.model = model
+        self.openai_client = openai_client
     
     def run(self):
-        # Get the path to the parent folder
-        parent_env_path = Path(__file__).resolve().parents[2] / ".env"
-
-        # Load the .env file from the parent folder
-        load_dotenv(dotenv_path=parent_env_path)
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is not set.")
-        
-        # Initialize OpenAI client
-        openai_client = OpenAI(api_key=api_key)
-
-
         # First create an initial plan
         print(f"Generating initial plan for question: {self.question}")
-        initial_plan = generate_initial_plan(openai_client, self.question, self.file_path, self.model)
+        initial_plan = generate_initial_plan(self.openai_client, self.question, self.file_path, self.model)
 
         # Evaluate the initial plan
-        initial_score = evaluate_plan(openai_client, self.question, initial_plan, self.file_path, self.model)
+        initial_score = evaluate_plan(self.openai_client, self.question, initial_plan, self.file_path, self.model)
 
         # Append the initial plan to the search tree
         print("Creating search tree with initial plan...")
@@ -52,7 +42,7 @@ class MetaPlanningRunner:
         selected_node = search_tree.select()
         while selected_node:
             # Expand the selected node
-            modifications = modify_plan(openai_client, self.question, selected_node.get_plan(), self.file_path, self.model)
+            modifications = modify_plan(self.openai_client, self.question, selected_node.get_plan(), self.file_path, self.model)
 
             print(f"Modifications for node\n {selected_node.get_plan()}:\n {modifications}")
 
@@ -68,19 +58,20 @@ class MetaPlanningRunner:
 
             # Evaluate the modified plan
             plan = expanded_node.get_plan()
-            expanded_node.score = evaluate_plan(openai_client, self.question, plan, self.file_path, self.model)
+            expanded_node.score = evaluate_plan(self.openai_client, self.question, plan, self.file_path, self.model)
 
 
             # Select the next node for expansion
             selected_node = search_tree.select()
 
-        # Print out the final search tree
-        search_tree.print_tree()
+        # # Print out the final search tree
+        # search_tree.print_tree()
 
-        # Select the top k plans
-        top_k_plans = search_tree.select_top_k(top_k=3)
+        # # Select the top k plans
+        # top_k_plans = search_tree.select_top_k(top_k=3)
 
-        return top_k_plans
+        # return top_k_plans
+        return search_tree
 
         # if save:
         #     plan_folder = Path(__file__).resolve().parent / "plans"

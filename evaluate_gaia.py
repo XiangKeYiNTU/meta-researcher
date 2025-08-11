@@ -19,7 +19,7 @@ class EMEvaluator:
             for result in raw_results:
                 extracted_result = {}
                 extracted_result['task_id'] = result['task_id']
-                extracted_result['prediction'] = result['step_by_step_results']['final_answer']
+                extracted_result['prediction'] = result['step_by_step_results'][-1]['final_answer']
                 extracted_results.append(extracted_result)
             return extracted_results
         except FileNotFoundError:
