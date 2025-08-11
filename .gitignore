@@ -52,6 +52,9 @@ owl/utils/__pycache__/
 logs/
 log/
 
+# Running results
+*_results.json
+
 # Coverage reports
 htmlcov/
 .tox/
