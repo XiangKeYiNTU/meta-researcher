@@ -73,10 +73,10 @@ The execution results will be saved into `GAIA_level1_validation_results.json`.
 
 6. Evaluate the results
 
-Run `evaluate.py` to get the results on EM (Exact Metric), specify the level, split, and the result JSON path
+First download the repo from [exact_match](https://huggingface.co/spaces/evaluate-metric/exact_match/tree/main) and run `evaluate_gaia.py` to get the results on EM (Exact Metric), specify the level, split, and the result JSON path
 
 ```shell
-python evaluate.py --level 1 --split "validation" --result_path "./GAIA_level1_validation_results.json"
+python evaluate_gaia.py --level 1 --split "validation" --result_path "./GAIA_level1_validation_results.json"
 ```
 
 **BONUS**: you can also run inference on a single question using the following command:
