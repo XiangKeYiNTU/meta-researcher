@@ -26,7 +26,7 @@ git clone https://github.com/XiangKeYiNTU/meta-researcher.git
 cd meta-researcher
 ```
 
-2. Download the GAIA benchmark, make a `dataset` folder under the repo folder, and move the downloaded dataset into it.
+2. Download the GAIA benchmark from [GAIA](https://huggingface.co/datasets/gaia-benchmark/GAIA/tree/main), make a `dataset` folder under the repo folder, and move the downloaded dataset into it.
 
 When finished, check if the benchmark is downloaded and moved correctly:
 
