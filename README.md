@@ -9,7 +9,7 @@
 
 🔎 A web exploring agent that is able to conduct web search and visit websites.
 
-![Meta Execution](./assets/meta.png)
+![Meta Execution](./assets/meta_completed.png)
 
 ## Reproduction
 
