@@ -1,35 +1,36 @@
-import os
-# import sys
 import argparse
-from dotenv import load_dotenv
-from pathlib import Path
-from openai import OpenAI
+from transformers import pipeline
 
-from tree_search.base import InitialNode, ModifiedNode, BaseTreeNode, SearchTree
-# from base import InitialNode, ModifiedNode, BaseTreeNode, SearchTree
+from tree_search.base import SearchTree, ModifiedNode
 
-from tree_search.openai.openai_utils import (
+from tree_search.qwen.qwen_utils import (
     generate_initial_plan,
     modify_plan,
     evaluate_plan
 )
 
-
-
-class MetaPlanningRunner:
-    def __init__(self, question: str, openai_client: OpenAI, file_path: str = None, model: str = "gpt-4"):
+class MetaPlanner:
+    def __init__(self, generator: pipeline, question: str, file_path: str = None):
+        self.generator = generator
         self.question = question
         self.file_path = file_path
-        self.model = model
-        self.openai_client = openai_client
-    
+
     def run(self):
         # First create an initial plan
         print(f"Generating initial plan for question: {self.question}")
-        initial_plan = generate_initial_plan(self.openai_client, self.question, self.file_path, self.model)
+        initial_plan = generate_initial_plan(
+            generator=self.generator,
+            question=self.question,
+            file_path=self.file_path
+        )
 
         # Evaluate the initial plan
-        initial_score = evaluate_plan(self.openai_client, self.question, initial_plan, self.file_path, self.model)
+        initial_score = evaluate_plan(
+            generator=self.generator,
+            question=self.question,
+            file_path=self.file_path,
+            plan=initial_plan
+        )
 
         # Append the initial plan to the search tree
         print("Creating search tree with initial plan...")
@@ -40,7 +41,12 @@ class MetaPlanningRunner:
         selected_node = search_tree.select()
         while selected_node:
             # Expand the selected node
-            modifications = modify_plan(self.openai_client, self.question, selected_node.get_plan(), self.file_path, self.model)
+            modifications = modify_plan(
+                generator=self.generator,
+                plan=selected_node.get_plan(),
+                question=self.question,
+                file_path=self.file_path
+            )
 
             print(f"Modifications for node\n {selected_node.get_plan()}:\n {modifications}")
 
@@ -56,7 +62,12 @@ class MetaPlanningRunner:
 
             # Evaluate the modified plan
             plan = expanded_node.get_plan()
-            expanded_node.score = evaluate_plan(self.openai_client, self.question, plan, self.file_path, self.model)
+            expanded_node.score = evaluate_plan(
+                generator=self.generator,
+                plan=plan,
+                question=self.question,
+                file_path=self.file_path
+            )
 
 
             # Select the next node for expansion
@@ -71,26 +82,27 @@ class MetaPlanningRunner:
         # return top_k_plans
         return search_tree
 
-        # if save:
-        #     plan_folder = Path(__file__).resolve().parent / "plans"
-        #     plan_folder.mkdir(parents=True, exist_ok=True)
 
-        #     save_path = plan_folder / f"top_3_{self.question.replace(' ', '_')}.json"
-        #     search_tree.serialize(save_path, top_k=3)
 
 if __name__ == "__main__":
-    # question = sys.argv[1] if len(sys.argv) > 1 else "What is the capital of France?"
-    # file_path = sys.argv[2] if len(sys.argv) > 2 else None
-    # model = sys.argv[3] if len(sys.argv) > 3 else "gpt-4o-mini"
-
     arg_parser = argparse.ArgumentParser(description="Meta Planning Runner")
     arg_parser.add_argument("--question", type=str, required=True, help="The question to answer.")
     arg_parser.add_argument("--file_path", type=str, default=None, help="Path to the file to use for context.")
-    arg_parser.add_argument("--model", type=str, default="gpt-4o-mini", help="The model to use for LLM operations.")
-    # arg_parser.add_argument("--save", action='store_true', help="Whether to save the search tree to a file.")
+    arg_parser.add_argument("--model_path_or_name", type=str, default="Qwen/Qwen2.5-32B", help="The model to use for LLM operations.")
 
     args = arg_parser.parse_args()
 
-    # Initialize the MetaPlanningRunner with the provided arguments
-    runner = MetaPlanningRunner(question=args.question, file_path=args.file_path, model=args.model)
+    generator = pipeline(
+        "text-generation", 
+        args.model_path_or_name, 
+        torch_dtype="auto", 
+        device_map="auto",
+    )
+
+    runner = MetaPlanner(
+        generator=generator,
+        question=args.question,
+        file_path=args.file_path
+    )
+
     runner.run()

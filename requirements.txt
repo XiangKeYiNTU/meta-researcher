@@ -11,3 +11,4 @@ evaluate==0.4.5
 python-docx==1.2.0
 xmltodict==0.14.2
 xlrd==2.0.2
+transformers==4.55.2

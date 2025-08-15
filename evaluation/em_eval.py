@@ -29,7 +29,7 @@ class EMEvaluator:
     def load_dataset(self):
         """Load the dataset for evaluation."""
         try:
-            dataset = load_dataset("./dataset/GAIA/GAIA.py", name=f"2023_level{self.level}", data_dir=".", split=self.split, trust_remote_code=True)
+            dataset = load_dataset("../dataset/GAIA/GAIA.py", name=f"2023_level{self.level}", data_dir=".", split=self.split, trust_remote_code=True)
             extracted_dataset = []
             for item in dataset:
                 extracted_item = {}
