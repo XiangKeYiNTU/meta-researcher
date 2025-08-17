@@ -15,7 +15,7 @@
 
 🔌Currently supported providers:
 - OpenAI
-- Qwen series (WIP)
+- Qwen series (hosted by Transformers)
 
 For reproducing results on GAIA benchmark:
 
@@ -62,14 +62,47 @@ OPENROUTER_API_KEY=
 HF_TOKEN=
 ```
 
-5. Execute the shell script
+5. Execute
 
-```shell
-chmod +x chmod +x run_gaia_openai.sh
-./run_gaia_openai.sh
+For OpenAI hosted models, run:
+```
+python run_gaia_openai.py --level "1" \
+    --split "validation" \
+    --planner_model "gpt-4o-mini" \
+    --planner_model "gpt-4o-mini" \
+    --executor_model "gpt-4o-mini"
 ```
 
-The default tested split is "validation" and the level is 1. You can change them in `run_gaia_openai.py`
+The default tested split is "validation" and the level is 1 if not specified. The default model backbone for all agent roles is "gpt-4o-mini" if not specified.
+
+For Qwen models, run:
+```
+python run_gaia_qwen.py --level 1 \
+    --split validation \
+    --model_name_or_path Qwen/Qwen2.5-32B \
+```
+
+For running on multiple devices in parallel:
+```
+# Auto-detect devices and use all available GPUs
+python run_gaia_qwen_parallel.py --level 1 \
+    --split validation \
+    --model_name_or_path Qwen/Qwen2.5-32B
+
+# Use specific number of workers
+python run_gaia_qwen_parallel.py --level 1 \
+--split validation \
+--model_name_or_path Qwen/Qwen2.5-32B \
+--num_workers 4
+
+# Process only first 10 tasks for testing
+python run_gaia_qwen_parallel.py --level 1 \
+--split validation \
+--model_name_or_path Qwen/Qwen2.5-32B \
+--max_tasks 10 \
+```
+
+The default tested split is "validation" and the level is 1 if not specified. The default model ID is "Qwen/Qwen2.5-32B" if not specified.
 
 The execution results will be saved into `GAIA_level1_validation_results.json`.
 
@@ -85,4 +118,12 @@ python evaluate_gaia.py --level 1 --split "validation" --result_path "./GAIA_lev
 
 ```shell
 python run_single_question_openai.py "Your question here" [--file_path "The path of the given file"] (Optional)
+
+python run_single_question_qwen.py "Your question here" [--file_path "The path of the given file"] (Optional)
 ```
+
+## More to come
+
+**Sample memory and memory retrieving module**
+
+**Executor agent RL training scripts with multi-turn tool use**

@@ -1,3 +1,6 @@
+import os
+from openai import OpenAI
+
 import argparse
 
 from transformers import pipeline
@@ -26,6 +29,11 @@ if __name__ == "__main__":
         torch_dtype="auto", 
         device_map="auto",
     )
+
+    qwen_client = OpenAI(
+                    base_url="https://openrouter.ai/api/v1",
+                    api_key=os.getenv("OPENROUTER_API_KEY"),
+                )
 
     # load the GAIA benchmark
     test_set = load_dataset("./dataset/GAIA/GAIA.py", name=f"2023_level{args.level}", data_dir=".", split=args.split, trust_remote_code=True)
@@ -64,7 +72,8 @@ if __name__ == "__main__":
                 current_step=next_step,
                 question=args.question,
                 finished_steps=finished_steps,
-                file_path=args.file_path
+                file_path=args.file_path,
+                qwen_client=qwen_client
             )
 
             step_result = step_executor.run()

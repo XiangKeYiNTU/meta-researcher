@@ -1,6 +1,7 @@
 from tree_search.schemas import Step
 from typing import List, Tuple
 import json
+from openai import OpenAI
 
 from transformers import pipeline
 
@@ -12,12 +13,13 @@ from web_explorer.visit_api import visit
 from document_tools.document_parser import DocumentParser
 
 class StepExecutor:
-    def __init__(self, generator: pipeline, current_step: Step, question: str, finished_steps: List[Tuple[Step, str]] = None, file_path: str = None):
+    def __init__(self, generator: pipeline, current_step: Step, question: str, qwen_client: OpenAI, finished_steps: List[Tuple[Step, str]] = None, file_path: str = None):
         self.generator = generator
         self.finished_steps = finished_steps
         self.current_step = current_step
         self.question = question
         self.file_path = file_path
+        self.qwen_client = qwen_client
 
     def run(self):
         if not self.finished_steps:

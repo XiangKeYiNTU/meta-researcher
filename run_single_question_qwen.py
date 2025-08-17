@@ -1,3 +1,5 @@
+import os
+from openai import OpenAI
 from transformers import pipeline
 
 
@@ -19,6 +21,11 @@ if __name__ == "__main__":
     parser.add_argument("--model_name_or_path", type=str, default="Qwen/Qwen2.5-32B", help="Model ID or path.")
 
     args = parser.parse_args()
+
+    qwen_client = OpenAI(
+                    base_url="https://openrouter.ai/api/v1",
+                    api_key=os.getenv("OPENROUTER_API_KEY"),
+                )
 
     generator = pipeline(
         "text-generation", 
@@ -51,7 +58,8 @@ if __name__ == "__main__":
             current_step=next_step,
             question=args.question,
             finished_steps=finished_steps,
-            file_path=args.file_path
+            file_path=args.file_path,
+            qwen_client=qwen_client
         )
 
         step_result = step_executor.run()
