@@ -218,19 +218,22 @@ class StepExecutor:
         
         url = action[1]
         if url in visit_cache:
-            raw_content = visit_cache[url]
+            web_summary = visit_cache[url]
             user_prompt = "CACHED VISIT:\n"
+            user_prompt += f"Website summary:\n```web_content\n{str(web_summary)}\n```"
         else:
             raw_content = visit(url)
-            visit_cache[url] = raw_content
-            user_prompt = ""
+            short_content = truncate_markdown(raw_content, max_tokens=8000)  # Reduced token limit
+            web_summary = summarize_web_content_by_qwen(self.current_step.goal, short_content, self.qwen_client)
+            user_prompt = f"Website summary:\n```web_content\n{str(web_summary)}\n```"  # Truncate summary
+            visit_cache[url] = web_summary
         
-        short_content = truncate_markdown(raw_content, max_tokens=8000)  # Reduced token limit
-        web_summary = summarize_web_content_by_qwen(self.current_step.goal, short_content, self.qwen_client)
-        user_prompt += f"Website summary:\n```web_content\n{str(web_summary)[:1500]}\n```"  # Truncate summary
+        # short_content = truncate_markdown(raw_content, max_tokens=8000)  # Reduced token limit
+        # web_summary = summarize_web_content_by_qwen(self.current_step.goal, short_content, self.qwen_client)
+        # user_prompt += f"Website summary:\n```web_content\n{str(web_summary)[:1500]}\n```"  # Truncate summary
         
         messages.append({"role": "user", "content": user_prompt})
-        action_step["action_result"] = str(web_summary)[:1500]
+        action_step["action_result"] = str(web_summary)
         actions.append(action_step)
         return True
     
