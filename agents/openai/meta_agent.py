@@ -50,16 +50,24 @@ class MetaAgent:
 
         user_prompt = f"Question: {self.question}\n\nPrevious Steps:\n{previous_steps}\n\nNext Steps:\n{next_steps}"
 
-        response = self.openai_client.chat.completions.create(
-            model=self.model,
-            messages=[
+        messages = [
                 {"role": "system", "content": choose_prompt},
                 {"role": "user", "content": user_prompt}
             ]
-        )
+        
+        while True:
 
-        chosen_step = extract_chosen_index(response.choices[0].message.content)
-        return next_candidates[chosen_step - 1].step
+            response = self.openai_client.chat.completions.create(
+                model=self.model,
+                messages=messages
+            )
+
+            message, chosen_step = extract_chosen_index(response.choices[0].message.content)
+            if chosen_step == -1:
+                messages.append({"role": "user", "content": message})
+                continue
+            else:
+                return next_candidates[chosen_step - 1].step
 
     def finalize_answer(self) -> str:
         """
@@ -72,12 +80,21 @@ class MetaAgent:
 
         user_prompt = f"Question: {self.question}\n\nPrevious Step Results:\n{previous_steps}"
 
-        response = self.openai_client.chat.completions.create(
-            model=self.model,
-            messages=[
+        messages = [
                 {"role":"system", "content": finalize_prompt},
                 {"role": "user", "content": user_prompt}
             ]
-        )
 
-        return extract_finalized_answer(response.choices[0].message.content)
+
+        while True:
+            response = self.openai_client.chat.completions.create(
+                model=self.model,
+                messages=messages
+            )
+
+            message, answer = extract_finalized_answer(response.choices[0].message.content)
+            if answer:
+                return answer
+            else:
+                messages.append({"role": "user", "content": message})
+                continue

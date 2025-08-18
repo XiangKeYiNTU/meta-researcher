@@ -38,6 +38,7 @@ def initialize_worker(model_name_or_path: str, device: str):
         model_name_or_path,
         torch_dtype="auto",
         device_map=device_map,
+        trust_remote_code=True
     )
     
     qwen_client = OpenAI(

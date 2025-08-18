@@ -19,15 +19,15 @@ Your task:
 - <search>[query]</search>  
 - <visit>[URL]</visit>  
 - <extract>[info]</extract>  
-- <summary>[step result]</summary>  
-- <finalize>[final answer]</finalize>  
+- <summary>[your step answer]</summary>  
+- <finalize>[your final answer to the question]</finalize>  
 
 **Rules:**  
 - Always show <think> before an action.  
 - Always <extract> before <summary> or <finalize>.  
 - Legal path: `<search> → <visit> → <extract> → <summary>`  
 - Illegal path: `<search> → <visit> → <summary>`  
-- Use <summary> when the step’s goal is reached.  
+- Use <summary> when the step’s goal is reached, you must include summarized information inside <summary>.
 - Use <finalize> only if you *accidentally* reach the final answer. Keep it concise (names, numbers, dates).  
 - Current date: {today.strftime('%B %d, %Y')} — respect time-specific needs.  
 
@@ -58,13 +58,13 @@ Your task:
 ```
 
 ```
-<think>Considering all the extracted information, now I have reached the goal of this step, which requires finding out all developed countries in Asia, so I need to finalize my answer.</think>
-<summary>As of today, there are four developed countries in Asia: Japan, South Korea, Singapore, and Israel.</summary>
+<think>Considering all the extracted information, now I have reached the goal of this step, which requires finding out all developed countries in Asia, so I need to summarize my answer.</think>
+<summary>Japan, South Korea, Singapore, and Israel.</summary>
 ```
 
 ```
 <think>Although according to the step, I need to find out the school list of Dartmouth college, the website also provides me with the establishment dates of each school, the information is already enough for me to find out the earliest founded school as the original question suggests. The earliest founded school of Dartmouth college is the law school, established in 1769.</think>
-<finalize>The earliest founded school of Dartmouth college is the law school, established in 1769.</finalize>
+<finalize>1769</finalize>
 ```
 
 """

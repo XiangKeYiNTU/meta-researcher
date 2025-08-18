@@ -2,6 +2,10 @@ from tree_search.schemas import Step
 from typing import List, Tuple
 import json
 from openai import OpenAI
+from pathlib import Path
+from dotenv import load_dotenv
+import os
+import torch
 
 from transformers import pipeline
 
@@ -13,136 +17,361 @@ from web_explorer.visit_api import visit
 from document_tools.document_parser import DocumentParser
 
 class StepExecutor:
-    def __init__(self, generator: pipeline, current_step: Step, question: str, qwen_client: OpenAI, finished_steps: List[Tuple[Step, str]] = None, file_path: str = None):
+    def __init__(self, generator: pipeline, current_step: Step, question: str, qwen_client: OpenAI, 
+                 finished_steps: List[Tuple[Step, str]] = None, file_path: str = None, max_context_tokens: int = 16000):
         self.generator = generator
-        self.finished_steps = finished_steps
+        self.finished_steps = finished_steps or []
         self.current_step = current_step
         self.question = question
         self.file_path = file_path
         self.qwen_client = qwen_client
-
+        self.max_context_tokens = max_context_tokens
+        
+    def estimate_tokens(self, text: str) -> int:
+        """Rough token estimation (4 chars ≈ 1 token)"""
+        return len(text) // 4
+    
+    def truncate_old_messages(self, messages: list, preserve_count: int = 3) -> list:
+        """Keep system message, initial user prompt, and last N exchanges"""
+        if len(messages) <= preserve_count + 2:  # +2 for system and initial user
+            return messages
+        
+        # Always keep: system message, initial user message, last N exchanges
+        system_msg = messages[0]
+        initial_user = messages[1]
+        recent_messages = messages[-(preserve_count * 2):]  # Last N exchanges (user + assistant pairs)
+        
+        return [system_msg, initial_user] + recent_messages
+    
+    def create_context_summary(self, actions: list, extracted_info: list) -> str:
+        """Create a compact summary of previous actions"""
+        if not actions:
+            return ""
+        
+        summary = "Previous actions summary:\n"
+        
+        # Group actions by type
+        searches = [a for a in actions if a["action"] == "search"]
+        visits = [a for a in actions if a["action"] == "visit"]
+        extracts = [a for a in actions if a["action"] == "extract"]
+        
+        if searches:
+            summary += f"- Performed {len(searches)} searches\n"
+        if visits:
+            summary += f"- Visited {len(visits)} websites\n"
+        if extracts:
+            summary += f"- Extracted {len(extracts)} pieces of information\n"
+        
+        # Include extracted info (most important)
+        if extracted_info:
+            summary += "\nExtracted information:\n"
+            for info in extracted_info[-5:]:  # Only last 5 extractions
+                summary += f"- {info}\n"
+        
+        return summary
+    
     def run(self):
+        # Initialize previous steps context
         if not self.finished_steps:
             previous_steps = "You are executing the first step."
         else:
-            previous_steps = ""
-            for step, answer in self.finished_steps:
-                previous_steps += f"Step: {step.goal}\nAnswer: {answer}\n\n"
+            # Summarize previous steps instead of including full details
+            previous_steps = f"Previous steps completed: {len(self.finished_steps)}\n"
+            # Only include the last 2 completed steps in detail
+            for step, answer in self.finished_steps[-2:]:
+                previous_steps += f"Step: {step.goal}\nAnswer: {answer[:500]}...\n\n"
 
-        user_prompt = f"Question: {self.question}\n\nPrevious steps and results:\n{previous_steps}Current step: {self.current_step.goal}\n\nInstructions: {self.current_step.instructions}"
+        user_prompt = f"Question: {self.question}\n\nPrevious steps:\n{previous_steps}Current step: {self.current_step.goal}\n\nInstructions: {self.current_step.instructions}"
 
-        # parse file content
+        # Parse file content (truncate if too long)
         if self.file_path:
             parser = DocumentParser()
             file_content = parser.parse_file(file_path=self.file_path)
+            if self.estimate_tokens(file_content) > 5000:
+                file_content = file_content[:20000] + "\n... [File truncated for context limits]"
             user_prompt += f"\n\nFile content:\n{file_content}"
 
-        # Start execution
+        # Initialize execution state
         extracted_info = []
         search_count = 0
+        visit_count = 0
         actions = []
         search_cache = {}
         visit_cache = {}
+        
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ]
 
-        while True:
-            messages = self.generator(messages, max_new_tokens=32768)[0]["generated_text"]
-            response = messages[-1]["content"]
-            # execute action
+        iteration_count = 0
+        max_iterations = 20  # Prevent infinite loops
+        
+        while iteration_count < max_iterations:
+            iteration_count += 1
+            
+            # Context management: truncate messages if getting too long
+            total_context = sum(self.estimate_tokens(str(msg)) for msg in messages)
+            if total_context > self.max_context_tokens:
+                messages = self.truncate_old_messages(messages, preserve_count=2)
+                
+                # Add context summary
+                context_summary = self.create_context_summary(actions, extracted_info)
+                if context_summary:
+                    messages.insert(-1, {"role": "user", "content": context_summary})
+            
+            # Generate response
+            result = self.generator(messages, max_new_tokens=2048)  # Reduced token count
+            if isinstance(result[0], dict) and "generated_text" in result[0]:
+                # Handle pipeline output format
+                response = result[0]["generated_text"]
+                if isinstance(response, list):
+                    response = response[-1]["content"]
+                else:
+                    # Extract new content only
+                    current_length = sum(len(str(msg.get("content", ""))) for msg in messages)
+                    response = response[current_length:].strip()
+            else:
+                response = str(result)
+            
+            print(f"Model response (iteration {iteration_count}): {response[:200]}...")
+            
+            # Add assistant response to messages
+            messages.append({"role": "assistant", "content": response})
+            
+            # Execute action
             action = extract_action(response)
-            # actions.append(action)
+            if not action:
+                messages.append({
+                    "role": "user", 
+                    "content": "Please specify an action using: <search>, <visit>, <extract>, or <summary>"
+                })
+                continue
+                
             action_step = {"action": action[0], "param": action[1] if len(action) > 1 else None}
+            
             if action[0] == "search":
-                search_count += 1
-                if search_count > 5:
-                    user_message = {
-                        "role": "user",
-                        "content": "Search quota reached. Please provide a final answer using <summary>."
-                    }
-                    messages.append(user_message)
-                    action_step["action_result"] = "search quota reached"
-                    actions.append(action_step)
-                    continue
-                else:
-                    if action[1] in search_cache:
-                        search_results = search_cache[action[1]]
-                        result_string = json.dumps(search_results, indent=2)
-                        print("WARNING: repeated search")
-                        user_prompt = "WARNING: repeated search\n" + "```search_results\n" + result_string + "\n```"
-                    else:
-                        search_results = get_text_search_results(action[1])
-                        search_cache[action[1]] = search_results
-                        result_string = json.dumps(search_results, indent=2)
-                        user_prompt = "```search_results\n" + result_string + "\n```"
-                    messages.append({
-                        "role": "user",
-                        "content": user_prompt
-                    })
-                    action_step["action_result"] = result_string
-                    actions.append(action_step)
-                    # search_cache[action[1]] = search_results
-                    continue
+                if self._handle_search_action(action, search_count, search_cache, messages, actions, action_step):
+                    search_count += 1
+                    if search_count >= 5:
+                        break
+                        
             elif action[0] == "visit":
-                if action[1] in visit_cache:
-                    raw_content = visit_cache[action[1]]
-                    print("WARNING: repeated visit")
-                    short_content = truncate_markdown(raw_content, max_tokens=20000)
-                    web_summary = summarize_web_content_by_qwen(
-                        step.goal, short_content, self.qwen_client
-                    )
-                    user_prompt = "WARNING: repeated visit\n" + "Here's a summary of the requested website:\n```web_content\n" + str(web_summary) + "\n```"
-                else:
-                    raw_content = visit(action[1])
-                    visit_cache[action[1]] = raw_content
-                # raw_content = visit(action[1])
-                    short_content = truncate_markdown(raw_content, max_tokens=20000)
-                    web_summary = summarize_web_content_by_qwen(
-                        step.goal, short_content, self.qwen_client
-                    )
-                    user_prompt = "Here's a summary of the requested website:\n```web_content\n" + str(web_summary) + "\n```"
-                messages.append({
-                    "role": "user",
-                    "content": user_prompt
-                })
-                action_step["action_result"] = web_summary
-                actions.append(action_step)
-                continue
+                if self._handle_visit_action(action, visit_count, visit_cache, messages, actions, action_step):
+                    visit_count += 1
+                    if visit_count >= 10:
+                        break
+                        
             elif action[0] == "extract":
-                extracted_info.append(action[1])
-                user_message = "Here are all the extracted information so far:\n"
-                for info in extracted_info:
-                    user_message += f"{info}\n"
-                messages.append({
-                    "role": "user",
-                    "content": user_message
-                })
-                action_step["action_result"] = extracted_info
-                actions.append(action_step)
-                continue
+                self._handle_extract_action(action, extracted_info, messages, actions, action_step)
+                
             elif action[0] == "summary":
-                step_results = {"goal": step.goal,
-                                "result": action[1],
-                                "found relevant info": extracted_info,
-                                "search count": search_count,
-                                "actions": actions}
-                # self.finished_steps.append(step_results)
-                return step_results
+                return self._create_step_results(action, extracted_info, search_count, actions)
+                
             elif action[0] == "finalize":
-                step_results = {"goal": step.goal,
-                                "result": f"Final answer: {action[1]}",
-                                "found relevant info": extracted_info,
-                                "search count": search_count,
-                                "actions": actions}
-                # self.finished_steps.append(step_results)
-                # print(f"Final answer: {action[1]}")
-                return step_results
+                return self._create_final_results(action, extracted_info, search_count, actions)
+                
             else:
                 messages.append({
                     "role": "user",
-                    "content": "The response format is invalid, you must include the available action markers: <search>, <visit>, <extract>, <summary>"
+                    "content": "Invalid action. Use: <search>, <visit>, <extract>, <summary>, or <finalize>"
                 })
-                continue
+        
+        # If max iterations reached, force final summary from model
+        return self._force_final_summary(messages, extracted_info, search_count, actions)
+    
+    def _handle_search_action(self, action, search_count, search_cache, messages, actions, action_step):
+        if search_count >= 5:
+            messages.append({
+                "role": "user",
+                "content": "Search quota reached. Please provide <summary> or <finalize>."
+            })
+            action_step["action_result"] = "search quota reached"
+            actions.append(action_step)
+            return False
+        
+        query = action[1]
+        if query in search_cache:
+            search_results = search_cache[query]
+            result_string = json.dumps(search_results, indent=2)
+            user_prompt = "CACHED SEARCH:\n```search_results\n" + result_string[:2000] + "\n```"
+        else:
+            search_results = get_text_search_results(query)
+            search_cache[query] = search_results
+            result_string = json.dumps(search_results, indent=2)[:2000]  # Truncate long results
+            user_prompt = "```search_results\n" + result_string + "\n```"
+        
+        messages.append({"role": "user", "content": user_prompt})
+        action_step["action_result"] = result_string
+        actions.append(action_step)
+        return True
+    
+    def _handle_visit_action(self, action, visit_count, visit_cache, messages, actions, action_step):
+        if visit_count >= 10:
+            messages.append({
+                "role": "user",
+                "content": "Visit quota reached. Please provide <summary> or <finalize>."
+            })
+            action_step["action_result"] = "visit quota reached"
+            actions.append(action_step)
+            return False
+        
+        url = action[1]
+        if url in visit_cache:
+            raw_content = visit_cache[url]
+            user_prompt = "CACHED VISIT:\n"
+        else:
+            raw_content = visit(url)
+            visit_cache[url] = raw_content
+            user_prompt = ""
+        
+        short_content = truncate_markdown(raw_content, max_tokens=8000)  # Reduced token limit
+        web_summary = summarize_web_content_by_qwen(self.current_step.goal, short_content, self.qwen_client)
+        user_prompt += f"Website summary:\n```web_content\n{str(web_summary)[:1500]}\n```"  # Truncate summary
+        
+        messages.append({"role": "user", "content": user_prompt})
+        action_step["action_result"] = str(web_summary)[:1500]
+        actions.append(action_step)
+        return True
+    
+    def _handle_extract_action(self, action, extracted_info, messages, actions, action_step):
+        extracted_info.append(action[1])
+        # Only show recent extractions to save context
+        recent_extractions = extracted_info[-5:] if len(extracted_info) > 5 else extracted_info
+        user_message = f"Recent extractions ({len(recent_extractions)}/{len(extracted_info)}):\n"
+        for info in recent_extractions:
+            user_message += f"- {info}\n"
 
+        user_message += f"Decide if the info is enough to answer. If enough, use <summary> to give answer of the step or <finalize> to give answer of the question. If not enough, decide the next <search> or <visit> action."
+        
+        messages.append({"role": "user", "content": user_message})
+        action_step["action_result"] = extracted_info[-1]  # Only store the latest extraction
+        actions.append(action_step)
+    
+    def _force_final_summary(self, messages, extracted_info, search_count, actions):
+        """Force the model to provide a final summary when max iterations reached"""
+        
+        # Create a comprehensive prompt for final summary
+        summary_prompt = f"""
+MAXIMUM ITERATIONS REACHED - FINAL SUMMARY REQUIRED
+
+Current step goal: {self.current_step.goal}
+
+Extracted information so far:
+"""
+        
+        if extracted_info:
+            for i, info in enumerate(extracted_info, 1):
+                summary_prompt += f"{i}. {info}\n"
+        else:
+            summary_prompt += "No information extracted yet.\n"
+        
+        summary_prompt += f"""
+Actions performed: {len(actions)} total actions
+- Searches: {search_count}
+- Visits: {len([a for a in actions if a["action"] == "visit"])}
+- Extractions: {len([a for a in actions if a["action"] == "extract"])}
+
+Please provide a comprehensive summary of what you have found relevant to the current step goal. 
+Use <summary>your final summary here</summary> format.
+
+If you have sufficient information to provide a final answer to the original question, use <finalize>your final answer</finalize> instead.
+"""
+        
+        # Add the summary prompt
+        messages.append({"role": "user", "content": summary_prompt})
+        
+        # Get model's final response
+        try:
+            result = self.generator(messages, max_new_tokens=2048)
+            if isinstance(result[0], dict) and "generated_text" in result[0]:
+                response = result[0]["generated_text"]
+                if isinstance(response, list):
+                    response = response[-1]["content"]
+                else:
+                    # Extract new content only
+                    current_length = sum(len(str(msg.get("content", ""))) for msg in messages)
+                    response = response[current_length:].strip()
+            else:
+                response = str(result)
+            
+            print(f"Forced final summary response: {response}")
+            
+            # Try to extract summary or finalize action from response
+            action = extract_action(response)
+            
+            if action and action[0] in ["summary", "finalize"]:
+                # Use the extracted action
+                if action[0] == "summary":
+                    return self._create_step_results(action, extracted_info, search_count, actions)
+                else:  # finalize
+                    return self._create_final_results(action, extracted_info, search_count, actions)
+            else:
+                # If no proper action format, use the entire response as summary
+                fallback_action = ["summary", response]
+                return self._create_step_results(fallback_action, extracted_info, search_count, actions)
+                
+        except Exception as e:
+            print(f"Error during forced summary generation: {e}")
+            # Fallback to a basic summary with extracted info
+            fallback_summary = f"Maximum iterations reached. Extracted information: {'; '.join(extracted_info) if extracted_info else 'None'}"
+            fallback_action = ["summary", fallback_summary]
+            return self._create_step_results(fallback_action, extracted_info, search_count, actions)
+    
+    def _create_step_results(self, action, extracted_info, search_count, actions):
+        return {
+            "goal": self.current_step.goal,
+            "result": action[1],
+            "found_relevant_info": extracted_info,
+            "search_count": search_count,
+            "visit_count": len([a for a in actions if a["action"] == "visit"]),
+            "total_actions": len(actions)
+        }
+    
+    def _create_final_results(self, action, extracted_info, search_count, actions):
+        return {
+            "goal": self.current_step.goal,
+            "result": f"Final answer: {action[1]}",
+            "found_relevant_info": extracted_info,
+            "search_count": search_count,
+            "visit_count": len([a for a in actions if a["action"] == "visit"]),
+            "total_actions": len(actions)
+        }
+
+
+if __name__ == "__main__":
+    # arg_parser = argparse.ArgumentParser(description="Meta Planning Runner")
+    # arg_parser.add_argument("--question", type=str, required=True, help="The question to answer.")
+    # arg_parser.add_argument("--file_path", type=str, default=None, help="Path to the file to use for context.")
+    # arg_parser.add_argument("--model_path_or_name", type=str, default="Qwen/Qwen2.5-32B", help="The model to use for LLM operations.")
+
+    # args = arg_parser.parse_args()
+
+    generator = pipeline(
+        "text-generation", 
+        "Qwen/Qwen2.5-32B", 
+        torch_dtype="auto", 
+        device_map="auto",
+        trust_remote_code=True
+    )
+
+    # Get the path to the parent folder
+    parent_env_path = Path(__file__).resolve().parents[2] / ".env"
+    # Load the .env file from the parent folder
+    load_dotenv(dotenv_path=parent_env_path)
+
+    qwen_client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+        )
+
+    step_executor = StepExecutor(
+        generator=generator,
+        current_step=Step(goal="Search for the tracklist of the VNV Nation album Futureperfect", instructions="Search for the album \"Futureperfect\" by VNV Nation and look through the tracklist"),
+        question="One of the songs on the VNV Nation album Futureperfect has a non-English title. The title references another piece of music. Who composed it? Answer using the format First name Last name.",
+        qwen_client=qwen_client
+    )
+
+    results = step_executor.run()
+
+    print(f"execution result: {results['result']}")

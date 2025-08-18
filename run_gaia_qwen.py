@@ -28,6 +28,7 @@ if __name__ == "__main__":
         args.model_name_or_path, 
         torch_dtype="auto", 
         device_map="auto",
+        trust_remote_code=True
     )
 
     qwen_client = OpenAI(
@@ -41,53 +42,56 @@ if __name__ == "__main__":
     # print(test_set[0].keys())
     result_json = []
     for i, task in enumerate(test_set):
-        result = {"task_id": task['task_id'], "question": task['Question'], "file_path": task['file_path'], "step_by_step_results": []}
-        print(f"Running task {i+1}/{len(test_set)}: {task['task_id']}")
-        question = task['Question']
-        file_path = task['file_path'] if task['file_path'] != "" else None
+        if task['file_path'] == "":
+        # result = {"task_id": task['task_id'], "question": task['Question'], "file_path": task['file_path'], "step_by_step_results": []}
+            result = {"task_id": task['task_id'], "question": task['Question'], "step_by_step_results": []}
+            print(f"Running task {i+1}/{len(test_set)}: {task['task_id']}")
+            question = task['Question']
+        # file_path = task['file_path'] if task['file_path'] != "" else None
+            file_path = None
 
-        plan_runner = MetaPlanner(generator=generator,question=args.question,file_path=args.file_path)
+            plan_runner = MetaPlanner(generator=generator, question=question, file_path=file_path)
 
-        search_tree = plan_runner.run()
-        top_plans = search_tree.select_top_plans()
-        # result['top_plans'] = [plan.model_dump() for plan in top_plans]
-        plan_graph = PlanGraph()
-        plan_graph.add_plan_list(top_plans)
+            search_tree = plan_runner.run()
+            top_plans = search_tree.select_top_plans()
+            # result['top_plans'] = [plan.model_dump() for plan in top_plans]
+            plan_graph = PlanGraph()
+            plan_graph.add_plan_list(top_plans)
 
-        meta_agent = MetaAgent(plan_graph=plan_graph, question=args.question, generator=generator)
+            meta_agent = MetaAgent(plan_graph=plan_graph, question=question, generator=generator)
 
-        while True:
-            next_step = meta_agent.generate_next_step()
-            if next_step.goal == "END":
-                # finalize answer
-                final_answer = meta_agent.finalize_answer()
-                print(f"Final answer: {final_answer}")
-                result['final_answer'] = final_answer
-                break
+            while True:
+                next_step = meta_agent.generate_next_step()
+                if next_step.goal == "END":
+                    # finalize answer
+                    final_answer = meta_agent.finalize_answer()
+                    print(f"Final answer: {final_answer}")
+                    result['final_answer'] = final_answer
+                    break
 
-            print(f"Next step to execute: {next_step.goal}")
-            finished_steps = meta_agent.plan_graph.get_current_exec_results()
-            step_executor = StepExecutor(
-                generator=generator,
-                current_step=next_step,
-                question=args.question,
-                finished_steps=finished_steps,
-                file_path=args.file_path,
-                qwen_client=qwen_client
-            )
+                print(f"Next step to execute: {next_step.goal}")
+                finished_steps = meta_agent.plan_graph.get_current_exec_results()
+                step_executor = StepExecutor(
+                    generator=generator,
+                    current_step=next_step,
+                    question=question,
+                    finished_steps=finished_steps,
+                    file_path=file_path,
+                    qwen_client=qwen_client
+                )
 
-            step_result = step_executor.run()
-            result['step_by_step_results'].append(step_result)
-            if "Final answer: " in step_result['result']:
-                final_answer = step_result['result'].split("Final answer: ")[1].strip()
-                print(f"Final answer: {final_answer}")
-                result['final_answer'] = final_answer
-                break
-            # update graph
-            step_node = meta_agent.plan_graph.exist_step(step=next_step)
-            step_node.execution_result = step_result['result']
+                step_result = step_executor.run()
+                result['step_by_step_results'].append(step_result)
+                if "Final answer: " in step_result['result']:
+                    final_answer = step_result['result'].split("Final answer: ")[1].strip()
+                    print(f"Final answer: {final_answer}")
+                    result['final_answer'] = final_answer
+                    break
+                # update graph
+                step_node = meta_agent.plan_graph.exist_step(step=next_step)
+                step_node.execution_result = step_result['result']
 
-        result_json.append(result)
+            result_json.append(result)
 
     with open(f"GAIA_level{args.level}_{args.split}_qwen_results.json", "w", encoding="utf-8") as f:
         json.dump(result_json, f, indent=4)

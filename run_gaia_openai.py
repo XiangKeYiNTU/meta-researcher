@@ -1,6 +1,7 @@
 import argparse
 # import sys
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 from openai import OpenAI
@@ -38,57 +39,60 @@ if __name__ == "__main__":
     # print(test_set[0].keys())
     result_json = []
     for i, task in enumerate(test_set):
-        result = {"task_id": task['task_id'], "question": task['Question'], "file_path": task['file_path'], "step_by_step_results": []}
-        print(f"Running task {i+1}/{len(test_set)}: {task['task_id']}")
-        question = task['Question']
-        file_path = task['file_path'] if task['file_path'] != "" else None
+        if task['file_path'] == "":
+            # result = {"task_id": task['task_id'], "question": task['Question'], "file_path": task['file_path'], "step_by_step_results": []}
+            result = {"task_id": task['task_id'], "question": task['Question'], "step_by_step_results": []}
+            print(f"Running task {i+1}/{len(test_set)}: {task['task_id']}")
+            question = task['Question']
+            # file_path = task['file_path'] if task['file_path'] != "" else None
+            file_path = None
 
-        # run the meta planning
-        openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        qwen_client = OpenAI(
-                        base_url="https://openrouter.ai/api/v1",
-                        api_key=os.getenv("OPENROUTER_API_KEY"),
-                    )
-        runner = MetaPlanningRunner(question=question, file_path=file_path, model=args.planner_model, openai_client=openai_client)
-        search_tree = runner.run()
-        top_plans = search_tree.select_top_plans()
-        result['top_plans'] = [plan.model_dump() for plan in top_plans]
-        plan_graph = PlanGraph()
-        plan_graph.add_plan_list(top_plans)
+            # run the meta planning
+            openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            qwen_client = OpenAI(
+                            base_url="https://openrouter.ai/api/v1",
+                            api_key=os.getenv("OPENROUTER_API_KEY"),
+                        )
+            runner = MetaPlanningRunner(question=question, file_path=file_path, model=args.planner_model, openai_client=openai_client)
+            search_tree = runner.run()
+            top_plans = search_tree.select_top_plans()
+            result['top_plans'] = [plan.model_dump() for plan in top_plans]
+            plan_graph = PlanGraph()
+            plan_graph.add_plan_list(top_plans)
 
-        # Start the execution
-        meta_agent = MetaAgent(plan_graph=plan_graph, question=question, openai_client=openai_client, model=args.meta_model)
-        while True:
-            next_step = meta_agent.generate_next_step()
-            if next_step.goal == "END":
-                # finalize answer
-                final_answer = meta_agent.finalize_answer()
-                print(f"Final answer: {final_answer}")
-                result['final_answer'] = final_answer
-                break
+            # Start the execution
+            meta_agent = MetaAgent(plan_graph=plan_graph, question=question, openai_client=openai_client, model=args.meta_model)
+            while True:
+                next_step = meta_agent.generate_next_step()
+                if next_step.goal == "END":
+                    # finalize answer
+                    final_answer = meta_agent.finalize_answer()
+                    print(f"Final answer: {final_answer}")
+                    result['final_answer'] = final_answer
+                    break
 
-            print(f"Next step to execute: {next_step.goal}")
-            finished_steps = meta_agent.plan_graph.get_current_exec_results()
-            step_executor = StepExecutor(
-                current_step=next_step,
-                question=question,
-                openai_client=openai_client,
-                qwen_client=qwen_client,
-                finished_steps=finished_steps,
-                file_path=file_path,
-                model=args.executor_model
-            )
-            step_result = step_executor.run()
-            result['step_by_step_results'].append(step_result)
-            if "Final answer: " in step_result['result']:
-                final_answer = step_result['result'].split("Final answer: ")[1].strip()
-                result['final_answer'] = final_answer
-                break
-            # update graph
-            step_node = meta_agent.plan_graph.exist_step(step=next_step)
-            step_node.execution_result = step_result['result']
+                print(f"Next step to execute: {next_step.goal}")
+                finished_steps = meta_agent.plan_graph.get_current_exec_results()
+                step_executor = StepExecutor(
+                    current_step=next_step,
+                    question=question,
+                    openai_client=openai_client,
+                    qwen_client=qwen_client,
+                    finished_steps=finished_steps,
+                    file_path=file_path,
+                    model=args.executor_model
+                )
+                step_result = step_executor.run()
+                result['step_by_step_results'].append(step_result)
+                if "Final answer: " in step_result['result']:
+                    final_answer = step_result['result'].split("Final answer: ")[1].strip()
+                    result['final_answer'] = final_answer
+                    break
+                # update graph
+                step_node = meta_agent.plan_graph.exist_step(step=next_step)
+                step_node.execution_result = step_result['result']
 
-        result_json.append(result)
+            result_json.append(result)
 
 
 
@@ -102,6 +106,6 @@ if __name__ == "__main__":
     #     result_json.append(result)
 
     # # Save the results to a JSON file
-    with open(f"GAIA_level{args.level}_{args.split}_results.json", "w", encoding="utf-8") as f:
+    with open(f"GAIA_level{args.level}_{args.split}_results_openai.json", "w", encoding="utf-8") as f:
         json.dump(result_json, f, indent=4)
 

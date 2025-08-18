@@ -51,11 +51,15 @@ class MetaAgent:
             {"role": "system", "content": choose_prompt},
             {"role": "user", "content": user_prompt}
         ]
+        while True:
+            messages = self.generator(messages, max_new_tokens=32768)[0]["generated_text"]
 
-        messages = self.generator(messages, max_new_tokens=32768)[0]["generated_text"]
-
-        chosen_step = extract_chosen_index(messages[-1]["content"])
-        return next_candidates[chosen_step - 1].step
+            message, chosen_step = extract_chosen_index(messages[-1]["content"])
+            if chosen_step == -1:
+                messages.append({"role": "user", "content": message})
+                continue
+            else:
+                return next_candidates[chosen_step - 1].step
     
     def finalize_answer(self) -> str:
         """
@@ -81,6 +85,12 @@ class MetaAgent:
             {"role": "user", "content": user_prompt}
         ]
 
-        messages = self.generator(messages, max_new_tokens=32768)[0]["generated_text"]
+        while True:
+            messages = self.generator(messages, max_new_tokens=32768)[0]["generated_text"]
 
-        return extract_finalized_answer(messages[-1]["content"])
+            message, answer = extract_finalized_answer(messages[-1]["content"])
+            if answer:
+                return answer
+            else:
+                messages.append({"role": "user", "content": message})
+                continue

@@ -53,7 +53,7 @@ logs/
 log/
 
 # Running results
-*_results.json
+*_results*.json
 
 # Coverage reports
 htmlcov/
@@ -78,3 +78,9 @@ models/
 /models/
 scripts/
 /scripts/
+flash-attention/
+/flash-attention/
+training/
+/training/
+
+*.sh

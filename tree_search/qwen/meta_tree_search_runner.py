@@ -1,5 +1,6 @@
 import argparse
 from transformers import pipeline
+# from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from tree_search.base import SearchTree, ModifiedNode
 
@@ -11,6 +12,9 @@ from tree_search.qwen.qwen_utils import (
 
 class MetaPlanner:
     def __init__(self, generator: pipeline, question: str, file_path: str = None):
+    # def __init__(self, model: AutoModelForCausalLM, tokenizer: AutoTokenizer, question: str, file_path: str = None):
+        # self.model = model
+        # self.tokenizer = tokenizer
         self.generator = generator
         self.question = question
         self.file_path = file_path
@@ -97,7 +101,11 @@ if __name__ == "__main__":
         args.model_path_or_name, 
         torch_dtype="auto", 
         device_map="auto",
+        trust_remote_code=True
     )
+
+    # model = AutoModelForCausalLM.from_pretrained(args.model_path_or_name, trust_remote_code=True)
+    # tokenizer = AutoTokenizer.from_pretrained(args.model_path_or_name, trust_remote_code=True)
 
     runner = MetaPlanner(
         generator=generator,
