@@ -79,24 +79,25 @@ For Qwen models, run:
 ```
 python run_gaia_qwen.py --level 1 \
     --split validation \
-    --model_name_or_path Qwen/Qwen2.5-32B \
+    --meta_model_name_or_path Qwen/Qwen2.5-32B \
+    --executor_model_name_or_path Qwen/Qwen2.5-32B \
 ```
 
 For running on multiple devices in parallel:
 ```
 # Auto-detect devices and use all available GPUs
-python run_gaia_qwen_parallel.py --level 1 \
+python run_gaia_qwen_multi.py --level 1 \
     --split validation \
     --model_name_or_path Qwen/Qwen2.5-32B
 
 # Use specific number of workers
-python run_gaia_qwen_parallel.py --level 1 \
+python run_gaia_qwen_multi.py --level 1 \
 --split validation \
 --model_name_or_path Qwen/Qwen2.5-32B \
 --num_workers 4
 
 # Process only first 10 tasks for testing
-python run_gaia_qwen_parallel.py --level 1 \
+python run_gaia_qwen_multi.py --level 1 \
 --split validation \
 --model_name_or_path Qwen/Qwen2.5-32B \
 --max_tasks 10 \
