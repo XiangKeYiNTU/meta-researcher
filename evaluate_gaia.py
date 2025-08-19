@@ -23,4 +23,4 @@ if __name__ == "__main__":
     evaluator = GAIAEvaluator(level=args.level, split=args.split, client=client)  # Replace None with your OpenAI client instance
     flags = evaluator.evaluate_complete_result(args.result_path)
     accuracy = sum(flags) / len(flags) if flags else 0.0
-    print(f"Evaluation completed. Accuracy: {accuracy:.4f}")
+    print(f"Evaluation completed. Accuracy: {accuracy:.4f} ({sum(flags)}/{len(flags)})")

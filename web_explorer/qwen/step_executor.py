@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 import torch
 
-from transformers import pipeline
+from transformers import pipeline, TextStreamer
 
 from web_explorer.prompts import system_prompt
 from web_explorer.utils import extract_action, truncate_markdown, summarize_web_content_by_qwen
@@ -17,9 +17,10 @@ from web_explorer.visit_api import visit
 from document_tools.document_parser import DocumentParser
 
 class StepExecutor:
-    def __init__(self, generator: pipeline, current_step: Step, question: str, qwen_client: OpenAI, 
+    def __init__(self, generator: pipeline, streamer: TextStreamer, current_step: Step, question: str, qwen_client: OpenAI, 
                  finished_steps: List[Tuple[Step, str]] = None, file_path: str = None, max_context_tokens: int = 16000):
         self.generator = generator
+        self.streamer = streamer
         self.finished_steps = finished_steps or []
         self.current_step = current_step
         self.question = question
@@ -121,7 +122,8 @@ class StepExecutor:
                     messages.insert(-1, {"role": "user", "content": context_summary})
             
             # Generate response
-            result = self.generator(messages, max_new_tokens=2048)  # Reduced token count
+            print(f"Current message stream length: {len(messages)}")
+            result = self.generator(messages, max_new_tokens=1024, streamer=self.streamer)  # Reduced token count
             if isinstance(result[0], dict) and "generated_text" in result[0]:
                 # Handle pipeline output format
                 response = result[0]["generated_text"]
@@ -144,7 +146,7 @@ class StepExecutor:
             if not action:
                 messages.append({
                     "role": "user", 
-                    "content": "Please specify an action using: <search>, <visit>, <extract>, or <summary>"
+                    "content": "Please specify an action using: <search>, <visit>, <extract>, or <summary>, <skip>, and <finalize>"
                 })
                 continue
                 
@@ -166,6 +168,9 @@ class StepExecutor:
                 self._handle_extract_action(action, extracted_info, messages, actions, action_step)
                 
             elif action[0] == "summary":
+                return self._create_step_results(action, extracted_info, search_count, actions)
+            
+            elif action[0] == "skip":
                 return self._create_step_results(action, extracted_info, search_count, actions)
                 
             elif action[0] == "finalize":
@@ -194,11 +199,11 @@ class StepExecutor:
         if query in search_cache:
             search_results = search_cache[query]
             result_string = json.dumps(search_results, indent=2)
-            user_prompt = "CACHED SEARCH:\n```search_results\n" + result_string[:2000] + "\n```"
+            user_prompt = "CACHED SEARCH:\n```search_results\n" + result_string + "\n```"
         else:
             search_results = get_text_search_results(query)
             search_cache[query] = search_results
-            result_string = json.dumps(search_results, indent=2)[:2000]  # Truncate long results
+            result_string = json.dumps(search_results, indent=2)  # Truncate long results
             user_prompt = "```search_results\n" + result_string + "\n```"
         
         messages.append({"role": "user", "content": user_prompt})
@@ -224,7 +229,13 @@ class StepExecutor:
         else:
             raw_content = visit(url)
             short_content = truncate_markdown(raw_content, max_tokens=8000)  # Reduced token limit
-            web_summary = summarize_web_content_by_qwen(self.current_step.goal, short_content, self.qwen_client)
+            # pre define topic
+            topic = self.current_step.goal
+            # get last search keyword
+            for action in reversed(actions):
+                if action['action'] == "search":
+                    topic = action['param']
+            web_summary = summarize_web_content_by_qwen(topic, short_content, self.qwen_client)
             user_prompt = f"Website summary:\n```web_content\n{str(web_summary)}\n```"  # Truncate summary
             visit_cache[url] = web_summary
         

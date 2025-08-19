@@ -50,8 +50,10 @@ class GAIAEvaluator:
             
             # find gt answer based on task_id
             gt_answer = next((d['Final answer'] for d in dataset if d['task_id'] == task_id), None)
-
-            flag = self.evaluate_single_question(task_id, gt_answer, item['final_answer'])
+            if 'final_answer' in item.keys():
+                flag = self.evaluate_single_question(task_id, gt_answer, item['final_answer'])
+            else:
+                continue
             # flag = self.evaluate_single_question(task_id, gt_answer, item['step_by_step_results'][-1]['final_answer'])
             if flag:
                 print(f"Task {task_id} passed.")

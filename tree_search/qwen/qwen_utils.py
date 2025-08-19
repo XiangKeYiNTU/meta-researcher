@@ -1,4 +1,4 @@
-from transformers import pipeline
+from transformers import pipeline, TextStreamer
 from transformers import AutoModelForCausalLM, AutoTokenizer
 # from pydantic import BaseModel
 from typing import Optional, Tuple, Callable, Any, List
@@ -42,7 +42,7 @@ def generate_response(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, mes
     # Generate response
     outputs = model.generate(
         tokenized_chat, 
-        max_new_tokens=32768,
+        max_new_tokens=1024,
         do_sample=True,
         temperature=0.7,
         pad_token_id=tokenizer.pad_token_id,
@@ -74,7 +74,7 @@ def manual_format_messages(tokenizer, messages):
     # Tokenize the formatted text
     return tokenizer.encode(formatted_text, return_tensors="pt")
 
-def generate_structured_response(generator: pipeline, system_prompt: str, user_prompt: str, extract_func: Callable[[str], Tuple[str, Optional[Any]]]):
+def generate_structured_response(generator: pipeline, streamer: TextStreamer, system_prompt: str, user_prompt: str, extract_func: Callable[[str], Tuple[str, Optional[Any]]]):
 # def generate_structured_response(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, system_prompt: str, user_prompt: str, extract_func: Callable[[str], Tuple[str, Optional[Any]]]):
     messages = [
         {"role": "user", "content": system_prompt},
@@ -82,7 +82,7 @@ def generate_structured_response(generator: pipeline, system_prompt: str, user_p
     ]
     
     while True:
-        messages = generator(messages, max_new_tokens=32768)[0]["generated_text"]
+        messages = generator(messages, max_new_tokens=1024, streamer=streamer)[0]["generated_text"]
         # print(messages[-1]["content"])
         response = messages[-1]["content"]
 
@@ -119,7 +119,7 @@ def generate_structured_response(generator: pipeline, system_prompt: str, user_p
                 {"role": "user", "content": f"Error: {extract_message}. Please rephrase your response."}
             )
 
-def generate_initial_plan(generator: pipeline, question: str, file_path: str = None) -> Plan:
+def generate_initial_plan(generator: pipeline, streamer: TextStreamer, question: str, file_path: str = None) -> Plan:
 # def generate_initial_plan(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, question: str, file_path: str = None) -> Plan:
     # build up user prompt
 
@@ -130,12 +130,13 @@ def generate_initial_plan(generator: pipeline, question: str, file_path: str = N
 
     return generate_structured_response(
         generator=generator,
+        streamer=streamer,
         system_prompt=initial_planning_prompt,
         user_prompt=user_prompt,
         extract_func=extract_plan
     )
 
-def modify_plan(generator: pipeline, plan: Plan, question: str, file_path: str = None) -> ModificationResponse:
+def modify_plan(generator: pipeline, streamer: TextStreamer, plan: Plan, question: str, file_path: str = None) -> ModificationResponse:
 # def modify_plan(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, plan: Plan, question: str, file_path: str = None) -> ModificationResponse:
     # build up user prompt
     if file_path:
@@ -147,12 +148,13 @@ def modify_plan(generator: pipeline, plan: Plan, question: str, file_path: str =
 
     return generate_structured_response(
         generator=generator,
+        streamer=streamer,
         system_prompt=expand_prompt,
         user_prompt=user_prompt,
         extract_func=extract_modification
     )
 
-def evaluate_plan(generator: pipeline, plan: Plan, question: str, file_path: str = None) -> PlanScore:
+def evaluate_plan(generator: pipeline, streamer: TextStreamer, plan: Plan, question: str, file_path: str = None) -> PlanScore:
 # def evaluate_plan(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, plan: Plan, question: str, file_path: str = None) -> PlanScore:
     # build up user prompt
     if file_path:
@@ -164,6 +166,7 @@ def evaluate_plan(generator: pipeline, plan: Plan, question: str, file_path: str
 
     return generate_structured_response(
         generator=generator,
+        streamer=streamer,
         system_prompt=evaluate_plan_prompt,
         user_prompt=user_prompt,
         extract_func=extract_scores

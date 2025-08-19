@@ -15,7 +15,8 @@ Your task:
 - If you already have enough info, you may summarize (step done) or finalize (full answer).  
 
 **Available actions** (wrap content in tags):  
-- <think>[reasoning]</think>  
+- <think>[reasoning]</think> 
+- <skip>[step answer from previous steps]</skip> 
 - <search>[query]</search>  
 - <visit>[URL]</visit>  
 - <extract>[info]</extract>  
@@ -27,14 +28,16 @@ Your task:
 - Always <extract> before <summary> or <finalize>.  
 - Legal path: `<search> → <visit> → <extract> → <summary>`  
 - Illegal path: `<search> → <visit> → <summary>`  
+- Use <skip> if you think the step result is already given from the previous steps, you must include current step result extracted from previous steps inside <skip>.
 - Use <summary> when the step’s goal is reached, you must include summarized information inside <summary>.
-- Use <finalize> only if you *accidentally* reach the final answer. Keep it concise (names, numbers, dates).  
+- Use <finalize> only if you *accidentally* reach the final answer to the question. Keep it concise (names, numbers, dates).  
 - Current date: {today.strftime('%B %d, %Y')} — respect time-specific needs.  
 
 **After each action you receive:**  
 - <search>: results with snippets + URLs  
 - <visit>: site summary  
 - <extract>: accumulated extracted info  
+- <skip>: step ends
 - <summary>: step ends  
 - <finalize>: whole task ends  
 
@@ -55,6 +58,11 @@ Your task:
 ```
 <think>The returned website content mentions the several characters that have broken the fourth wall, I need to extract them.</think>
 <extract>The fictional characters who have broken the fourth wall: Deadpool, Plastic Man, Wonderwoman.</extract>
+```
+
+```
+<think>The answer of this step "Find out how many albums were released from 2000 to 2009" is already been reached from the previous step "Find out the singer's discography" which is 2, so I'm going to skip this step.</think>
+<skip>2</skip>
 ```
 
 ```

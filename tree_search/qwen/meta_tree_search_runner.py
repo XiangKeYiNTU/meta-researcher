@@ -1,5 +1,5 @@
 import argparse
-from transformers import pipeline
+from transformers import pipeline, TextStreamer
 # from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from tree_search.base import SearchTree, ModifiedNode
@@ -11,11 +11,12 @@ from tree_search.qwen.qwen_utils import (
 )
 
 class MetaPlanner:
-    def __init__(self, generator: pipeline, question: str, file_path: str = None):
+    def __init__(self, generator: pipeline, streamer: TextStreamer, question: str, file_path: str = None):
     # def __init__(self, model: AutoModelForCausalLM, tokenizer: AutoTokenizer, question: str, file_path: str = None):
         # self.model = model
         # self.tokenizer = tokenizer
         self.generator = generator
+        self.streamer = streamer
         self.question = question
         self.file_path = file_path
 
@@ -24,6 +25,7 @@ class MetaPlanner:
         print(f"Generating initial plan for question: {self.question}")
         initial_plan = generate_initial_plan(
             generator=self.generator,
+            streamer=self.streamer,
             question=self.question,
             file_path=self.file_path
         )
@@ -31,6 +33,7 @@ class MetaPlanner:
         # Evaluate the initial plan
         initial_score = evaluate_plan(
             generator=self.generator,
+            streamer=self.streamer,
             question=self.question,
             file_path=self.file_path,
             plan=initial_plan
@@ -47,12 +50,13 @@ class MetaPlanner:
             # Expand the selected node
             modifications = modify_plan(
                 generator=self.generator,
+                streamer=self.streamer,
                 plan=selected_node.get_plan(),
                 question=self.question,
                 file_path=self.file_path
             )
 
-            print(f"Modifications for node\n {selected_node.get_plan()}:\n {modifications}")
+            # print(f"Modifications from model:\n {modifications}")
 
             # Create modified nodes and append them to the search tree
             expanded_node = ModifiedNode(
@@ -68,6 +72,7 @@ class MetaPlanner:
             plan = expanded_node.get_plan()
             expanded_node.score = evaluate_plan(
                 generator=self.generator,
+                streamer=self.streamer,
                 plan=plan,
                 question=self.question,
                 file_path=self.file_path
@@ -104,11 +109,14 @@ if __name__ == "__main__":
         trust_remote_code=True
     )
 
+    streamer = TextStreamer(generator.tokenizer, skip_prompt=True, skip_special_tokens=True)
+
     # model = AutoModelForCausalLM.from_pretrained(args.model_path_or_name, trust_remote_code=True)
     # tokenizer = AutoTokenizer.from_pretrained(args.model_path_or_name, trust_remote_code=True)
 
     runner = MetaPlanner(
         generator=generator,
+        streamer=streamer,
         question=args.question,
         file_path=args.file_path
     )

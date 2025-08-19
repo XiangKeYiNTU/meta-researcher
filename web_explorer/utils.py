@@ -28,12 +28,15 @@ def encode_image(image_path):
 
 def extract_action(response: str):
     # check for terminating action first
-    if "<summary>" in response:
-        summary = response.split("<summary>")[1].split("</summary>")[0]
-        return ("summary", summary)
-    elif "<finalize>" in response:
+    if "<finalize>" in response:
         final_answer = response.split("<finalize>")[1].split("</finalize>")[0]
         return ("finalize", final_answer)
+    elif "<skip>" in response:
+        skip = response.split("<skip>")[1].split("</skip>")[0]
+        return ("skip", skip)
+    elif "<summary>" in response:
+        summary = response.split("<summary>")[1].split("</summary>")[0]
+        return ("summary", summary)
     elif "<search>" in response:
         search_query = response.split("<search>")[1].split("</search>")[0]
         return ("search", search_query)

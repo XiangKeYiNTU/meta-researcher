@@ -1,4 +1,4 @@
-from transformers import pipeline
+from transformers import pipeline, TextStreamer
 
 from tree_search.schemas import Plan, Step
 from plan_merger.base import PlanGraph
@@ -7,10 +7,11 @@ from agents.prompts import choose_prompt, finalize_prompt
 from agents.llm_utils import extract_chosen_index, extract_finalized_answer
 
 class MetaAgent:
-    def __init__(self, plan_graph: PlanGraph, question: str, generator: pipeline):
+    def __init__(self, plan_graph: PlanGraph, question: str, generator: pipeline, streamer: TextStreamer):
         self.plan_graph = plan_graph
         self.question = question
         self.generator = generator
+        self.streamer = streamer
 
     def generate_next_step(self) -> Step:
         """
@@ -52,9 +53,15 @@ class MetaAgent:
             {"role": "user", "content": user_prompt}
         ]
         while True:
-            messages = self.generator(messages, max_new_tokens=32768)[0]["generated_text"]
+            messages = self.generator(messages, max_new_tokens=1024, streamer=self.streamer)[0]["generated_text"]
 
             message, chosen_step = extract_chosen_index(messages[-1]["content"])
+            if not chosen_step:
+                # Meta agent didn't choose a step, update all current candidates and skip them
+                for candidate_node in next_candidates:
+                    real_node = self.plan_graph.exist_step(candidate_node.step)
+                    real_node.execution_result = "Skipped by meta agent."
+                return None
             if chosen_step == -1:
                 messages.append({"role": "user", "content": message})
                 continue
@@ -86,7 +93,7 @@ class MetaAgent:
         ]
 
         while True:
-            messages = self.generator(messages, max_new_tokens=32768)[0]["generated_text"]
+            messages = self.generator(messages, max_new_tokens=1024, streamer=self.streamer)[0]["generated_text"]
 
             message, answer = extract_finalized_answer(messages[-1]["content"])
             if answer:

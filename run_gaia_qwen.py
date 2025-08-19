@@ -3,7 +3,7 @@ from openai import OpenAI
 
 import argparse
 
-from transformers import pipeline
+from transformers import pipeline, TextStreamer
 
 from tree_search.qwen.meta_tree_search_runner import MetaPlanner
 from plan_merger.base import PlanGraph
@@ -22,7 +22,7 @@ from typing import List, Dict, Any
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def process_tasks_with_error_handling(test_set: List[Dict], generator, qwen_client, max_retries: int = 2):
+def process_tasks_with_error_handling(test_set: List[Dict], meta_generator, executor_generator, meta_streamer, executor_streamer, qwen_client, max_retries: int = 2):
     """
     Process tasks with comprehensive error handling.
     
@@ -45,7 +45,7 @@ def process_tasks_with_error_handling(test_set: List[Dict], generator, qwen_clie
         
         # Skip tasks without file_path (if that's your condition)
         if task.get('file_path', "") == "":
-            result = process_single_task(task, generator, qwen_client, i+1, len(test_set), max_retries)
+            result = process_single_task(task, meta_generator, executor_generator, meta_streamer, executor_streamer, qwen_client, i+1, len(test_set), max_retries)
             result_json.append(result)
             
             if result.get('status') == 'success':
@@ -66,7 +66,7 @@ def process_tasks_with_error_handling(test_set: List[Dict], generator, qwen_clie
     logger.info(f"Task processing completed. Successful: {successful_tasks}, Failed: {failed_tasks}, Total: {len(test_set)}")
     return result_json
 
-def process_single_task(task: Dict, generator, qwen_client, task_num: int, total_tasks: int, max_retries: int = 2) -> Dict[str, Any]:
+def process_single_task(task: Dict, meta_generator, executor_generator, meta_streamer, executor_streamer, qwen_client, task_num: int, total_tasks: int, max_retries: int = 2) -> Dict[str, Any]:
     """
     Process a single task with error handling and retries.
     
@@ -100,7 +100,7 @@ def process_single_task(task: Dict, generator, qwen_client, task_num: int, total
             
             # Step 1: Initialize MetaPlanner
             try:
-                plan_runner = MetaPlanner(generator=generator, question=question, file_path=file_path)
+                plan_runner = MetaPlanner(generator=meta_generator, streamer=meta_streamer, question=question, file_path=file_path)
             except Exception as e:
                 raise TaskProcessingError(f"Failed to initialize MetaPlanner: {str(e)}", "meta_planner_init")
             
@@ -115,7 +115,7 @@ def process_single_task(task: Dict, generator, qwen_client, task_num: int, total
             try:
                 plan_graph = PlanGraph()
                 plan_graph.add_plan_list(top_plans)
-                meta_agent = MetaAgent(plan_graph=plan_graph, question=question, generator=generator)
+                meta_agent = MetaAgent(plan_graph=plan_graph, question=question, generator=meta_generator, streamer=meta_streamer)
             except Exception as e:
                 raise TaskProcessingError(f"Failed to initialize MetaAgent: {str(e)}", "meta_agent_init")
             
@@ -130,6 +130,9 @@ def process_single_task(task: Dict, generator, qwen_client, task_num: int, total
                     # Generate next step
                     try:
                         next_step = meta_agent.generate_next_step()
+                        # Meta agent chooses to skip
+                        if not next_step:
+                            continue
                     except Exception as e:
                         logger.error(f"Error generating next step for task {task_id}: {str(e)}")
                         # Try to finalize with current progress
@@ -152,7 +155,8 @@ def process_single_task(task: Dict, generator, qwen_client, task_num: int, total
                     try:
                         finished_steps = meta_agent.plan_graph.get_current_exec_results()
                         step_executor = StepExecutor(
-                            generator=generator,
+                            generator=executor_generator,
+                            streamer=executor_streamer,
                             current_step=next_step,
                             question=question,
                             finished_steps=finished_steps,
@@ -240,17 +244,30 @@ if __name__ == "__main__":
 
     parser.add_argument("--level", type=str, default="1", help="The level of the GAIA benchmark.")
     parser.add_argument("--split", type=str, default="validation", help="The split of the GAIA benchmark.")
-    parser.add_argument("--model_name_or_path", type=str, default="Qwen/Qwen2.5-32B", help="Model ID or path.")
+    parser.add_argument("--meta_model_name_or_path", type=str, default="Qwen/Qwen2.5-32B", help="Meta model ID or path.")
+    parser.add_argument("--executor_model_name_or_path", type=str, default="Qwen/Qwen2.5-32B", help="Executor model ID or path.")
 
     args = parser.parse_args()
 
-    generator = pipeline(
+    meta_generator = pipeline(
         "text-generation", 
-        args.model_name_or_path, 
+        args.meta_model_name_or_path, 
         torch_dtype="auto", 
         device_map="auto",
         trust_remote_code=True
     )
+
+    executor_generator = pipeline(
+        "text-generation", 
+        args.executor_model_name_or_path, 
+        torch_dtype="auto", 
+        device_map="auto",
+        trust_remote_code=True
+    )
+
+    meta_streamer = TextStreamer(meta_generator.tokenizer, skip_prompt=True, skip_special_tokens=True)
+
+    executor_streamer = TextStreamer(executor_generator.tokenizer, skip_prompt=True, skip_special_tokens=True)
 
     qwen_client = OpenAI(
                     base_url="https://openrouter.ai/api/v1",
@@ -260,7 +277,13 @@ if __name__ == "__main__":
     # load the GAIA benchmark
     test_set = load_dataset("./dataset/GAIA/GAIA.py", name=f"2023_level{args.level}", data_dir=".", split=args.split, trust_remote_code=True)
 
-    result_json = process_tasks_with_error_handling(test_set, generator, qwen_client, max_retries=2)
+    # result_json = process_tasks_with_error_handling(test_set, meta_generator, executor_generator, executor_streamer=executor_streamer, qwen_client, max_retries=2)
+    result_json = process_tasks_with_error_handling(test_set=test_set,
+                                                    meta_generator=meta_generator,
+                                                    executor_generator=executor_generator,
+                                                    meta_streamer=meta_streamer,
+                                                    executor_streamer=executor_streamer,
+                                                    qwen_client=qwen_client)
 
     with open(f"GAIA_level{args.level}_{args.split}_qwen_results.json", "w", encoding="utf-8") as f:
         json.dump(result_json, f, indent=4)

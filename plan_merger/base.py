@@ -66,6 +66,14 @@ class PlanGraph:
                 continue
             visited.add(node)
 
+            # Skip START and END nodes - they are not executable steps
+            if node.step.goal in ["START"]:
+                # Add children to continue traversal
+                for child in node.children:
+                    if child not in visited:
+                        queue.append(child)
+                continue
+
             # If execution_result is None, it's the next step to execute
             if node.execution_result is None:
                 next_exec_nodes.append(node)
@@ -88,8 +96,8 @@ class PlanGraph:
 
         # Traverse all nodes in the plan graph
         for node in self.node_list:
-            # Add step and its execution result if available
-            if node.execution_result is not None:
+            # Add step and its execution result if available (excluding START/END)
+            if node.execution_result is not None and node.step.goal not in ["START", "END"]:
                 results.append((node.step, node.execution_result))
 
         return results

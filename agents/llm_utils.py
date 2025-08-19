@@ -18,12 +18,14 @@ def extract_chosen_index(response: str) -> Tuple[str, int]:
         return ("Response does not contain valid <choose> markers.", -1)
 
     chosen_step_str = index.group(1).strip()
+    if chosen_step_str == "None":
+        return ("success", None)
 
     try:
         return ("success", int(chosen_step_str))
     except ValueError:
         # raise ValueError(f"Invalid step number: {chosen_step_str}")
-        return ("The step number provided is invalid, please provide your chosen step index between `<choose>` and `<choose>`", -1)
+        return ("The step number provided is invalid, please provide your chosen step index or 'None' between `<choose>` and `<choose>`", -1)
     
 def extract_finalized_answer(response: str) -> Tuple[str, Optional[str]]:
     """

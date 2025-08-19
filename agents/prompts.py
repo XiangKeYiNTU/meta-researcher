@@ -15,6 +15,7 @@ Instruction:
     - executable in under five searches
 - Respond with the chosen step number surrounded by markers `<choose>` and `</choose>`
 - Surround your thinking process with `<think>` and `</think>`
+- If you think all the steps are redundant or unnecessary respond with `<choose>None</choose>`
 
 Example:
 ```
