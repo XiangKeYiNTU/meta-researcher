@@ -80,7 +80,7 @@ scripts/
 /scripts/
 flash-attention/
 /flash-attention/
-training/
-/training/
+training/dataset/*.json
+training/dataset/*.jsonl
 
 *.sh
