@@ -79,7 +79,6 @@ scripts/
 /scripts/
 flash-attention/
 /flash-attention/
-verl/sapo/dataset/processed
-verl/sapo/dataset/raw
+verl/
 
 *.sh

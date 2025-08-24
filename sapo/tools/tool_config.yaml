@@ -1,0 +1,43 @@
+tools:
+  - class_name: sapo.tools.search.SearchTool
+    config:
+      api_key: 
+      type: native
+    tool_schema:
+      type: function
+      function:
+        name: search
+        description: Searches the web for relevant information based on the given query.
+        parameters:
+          type: object
+          properties:
+            query:
+              type: string
+              description: query for searching
+          required: 
+            - query
+
+  - class_name: sapo.tools.visit.VisitTool
+    config:
+      jina_api_key: 
+      openrouter_api_key:
+      summarize_model:
+      type: native
+    tool_schema:
+      type: function
+      function:
+        name: visit
+        description: A tool for searching the web using serpapi.
+        parameters:
+          type: object
+          properties:
+            url:
+              type: string
+              description: url to visit
+            topic:
+              type: string
+              description: topic for extracting information on the website
+          required: 
+            - url
+
+          

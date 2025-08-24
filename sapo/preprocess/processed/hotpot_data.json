@@ -1,0 +1,397 @@
+{
+  "data": [
+    {
+      "question": "Were Scott Derrickson and Ed Wood of the same nationality?",
+      "gt_answer": "yes",
+      "plans": [
+        {
+          "steps": [
+            {
+              "goal": "Verify Scott Derrickson's nationality",
+              "instructions": "Search for 'Scott Derrickson nationality' or 'Scott Derrickson birthplace'. Focus on biographical sources like official biographies or encyclopedia entries."
+            },
+            {
+              "goal": "Verify Ed Wood's nationality",
+              "instructions": "Search for 'Ed Wood nationality' or 'Edward D. Wood Jr. birthplace'. Prioritize film history sources from reputable databases."
+            },
+            {
+              "goal": "Compare nationalities",
+              "instructions": "Analyze results from both searches without cross-referencing additional sources. Determine if both individuals share the same country of origin/citizenship based solely on gathered data."
+            }
+          ]
+        },
+        {
+          "steps": [
+            {
+              "goal": "Find authoritative biographical sources for Scott Derrickson.",
+              "instructions": "Search for 'Scott Derrickson biography official' and 'Scott Derrickson citizenship verified' to locate two reliable sources (e.g., government records, major film award profiles, or institutional databases) that explicitly state his country of origin."
+            },
+            {
+              "goal": "Find authoritative biographical sources for Ed Wood.",
+              "instructions": "Search for 'Ed Wood birthplace documented' and 'Ed Wood nationality historical records' to identify two credible references (e.g., film archives, academic publications, or library catalogs) confirming his country of birth or citizenship."
+            },
+            {
+              "goal": "Compare the nationality information from verified sources.",
+              "instructions": "Cross-examine the documented countries of origin from steps 1 and 2. Verify if both individuals are consistently recorded as citizens or natives of the same sovereign state in the sources."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "question": "What government position was held by the woman who portrayed Corliss Archer in the film Kiss and Tell?",
+      "gt_answer": "Chief of Protocol",
+      "plans": [
+        {
+          "steps": [
+            {
+              "goal": "Identify the actress who portrayed Corliss Archer in the 1945 film 'Kiss and Tell'",
+              "instructions": "Search for the cast credits of the film 'Kiss and Tell' 1945. Look specifically for the actress linked to the character Corliss Archer in reliable film databases or official sources."
+            },
+            {
+              "goal": "Find the government position held by this actress during her public service career",
+              "instructions": "Search for the biographical or career history of the identified actress. Use keywords like 'political career' or 'government service' combined with her name. Focus on credible sources like official government websites, reputable news archives, or academic biographies."
+            }
+          ]
+        },
+        {
+          "steps": [
+            {
+              "goal": "Identify the actress who portrayed Corliss Archer in the 1949 film 'Kiss and Tell'.",
+              "instructions": "Search for the cast list of the film 'Kiss and Tell' (1949) to confirm the actress's name."
+            },
+            {
+              "goal": "Research the actress's career outside of acting, particularly in government roles.",
+              "instructions": "Search for biographical details about the actress using terms like 'Actress name non-acting career' or 'Actress name government positions'."
+            },
+            {
+              "goal": "Cross-reference the discovered government position with historical records.",
+              "instructions": "Look up 'Actress name role in Department of State' to confirm alignment with the Chief of Protocol position held during her tenure."
+            },
+            {
+              "goal": "Validate that the position matches the correct timeframe and responsibilities.",
+              "instructions": "Check details about the Chief of Protocol role, focusing on the period the actress held it, to ensure accuracy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "question": "What science fantasy young adult series, told in first person, has a set of companion books narrating the stories of enslaved worlds and alien species?",
+      "gt_answer": "Animorphs",
+      "plans": [
+        {
+          "steps": [
+            {
+              "goal": "Identify science fantasy young adult book series with first-person narration.",
+              "instructions": "Search for 'YA science fantasy book series first-person narrator'. Verify using authoritative book databases or literary articles."
+            },
+            {
+              "goal": "Find series with published companion books focusing on enslaved worlds/alien species.",
+              "instructions": "For each identified series, search '[Series Name] companion books enslaved worlds alien perspectives' to check for anthologies or spin-offs."
+            },
+            {
+              "goal": "Confirm companion books use first-person narrative from non-human perspectives.",
+              "instructions": "Check descriptions/reviews of identified companion books using queries like '[Companion Book Title] narrative style enslaved species'."
+            },
+            {
+              "goal": "Verify all criteria alignment for final series identification.",
+              "instructions": "Cross-reference collected data to ensure the series meets: YA genre, science fantasy setting, main series in first-person, companion books about enslaved worlds/aliens in first-person format."
+            }
+          ]
+        },
+        {
+          "steps": [
+            {
+              "goal": "Identify young adult science fantasy series written in a first-person narrative style.",
+              "instructions": "Search for young adult science fantasy book lists using keywords like “first-person YA sci-fi series” on platforms such as Goodreads, Amazon, or literary archives."
+            },
+            {
+              "goal": "Locate companion books connected to the series that focus on enslaved civilizations or alien species.",
+              "instructions": "Once potential series are identified, use queries like “[series title] spin-off books enslaved worlds alien lifeforms” to find related works narrating from non-human perspectives."
+            },
+            {
+              "goal": "Verify if companion books emphasize first-person narratives by enslaved or alien characters.",
+              "instructions": "Check summaries, sample chapters, or author interviews to validate if the companion books’ narrators are explicitly members of the enslaved worlds or alien species described."
+            },
+            {
+              "goal": "Cross-reference all criteria to finalize the correct match.",
+              "instructions": "Confirm that the primary series is young-adult-oriented, science fantasy, and first-person, while its companion books narrate the perspectives of alien or oppressed groups."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "question": "Are the Laleli Mosque and Esma Sultan Mansion located in the same neighborhood?",
+      "gt_answer": "no",
+      "plans": [
+        {
+          "steps": [
+            {
+              "goal": "Identify the precise neighborhood/district of Laleli Mosque",
+              "instructions": "Search for 'Laleli Mosque location neighborhood'. Verify the administrative district and neighborhood name in Istanbul using reliable sources like official tourism sites or city databases."
+            },
+            {
+              "goal": "Identify the precise neighborhood/district of Esma Sultan Mansion",
+              "instructions": "Search for 'Esma Sultan Mansion location neighborhood'. Confirm its specific district and neighborhood in Istanbul through cultural heritage sites or municipal records."
+            },
+            {
+              "goal": "Compare neighborhoods for both landmarks",
+              "instructions": "Analyze location data from previous steps. Cross-check district names and neighborhood boundaries to determine if both share identical administrative zones without additional searches."
+            }
+          ]
+        },
+        {
+          "steps": [
+            {
+              "goal": "Determine the neighborhood of Laleli Mosque.",
+              "instructions": "Search for the Laleli Mosque's historical neighborhood in Istanbul, focusing on its administrative boundaries during the Ottoman period and its current district."
+            },
+            {
+              "goal": "Determine the neighborhood of Esma Sultan Mansion.",
+              "instructions": "Locate Esma Sultan Mansion's historical neighborhood in Istanbul, cross-referencing its original construction period and present-day municipal classification."
+            },
+            {
+              "goal": "Compare the neighborhoods of the two landmarks.",
+              "instructions": "Analyze whether the identified neighborhoods overlap by name or geographical boundaries, using Istanbul’s historical and modern mapping resources."
+            },
+            {
+              "goal": "Verify administrative divisions to confirm separation.",
+              "instructions": "Cross-check historical records and current Istanbul municipality administrative divisions to ensure the two neighborhoods were/are classified as distinct areas."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "question": "The director of the romantic comedy \"Big Stone Gap\" is based in what New York city?",
+      "gt_answer": "Greenwich Village, New York City",
+      "plans": [
+        {
+          "steps": [
+            {
+              "goal": "Identify the director of the romantic comedy 'Big Stone Gap'.",
+              "instructions": "Search for 'director of Big Stone Gap movie'. Browse top results like IMDb, Wikipedia, or official film databases to confirm the full name and credentials of the director."
+            },
+            {
+              "goal": "Confirm that the identified director is based in New York City.",
+              "instructions": "Search for 'where is [director name] based' or '[director name] New York City'. Review sources such as professional profiles, interviews, or biography pages to verify NYC as their primary location."
+            },
+            {
+              "goal": "Determine the specific neighborhood or district in New York City where the director is based.",
+              "instructions": "Search for '[director name] specific location in New York City' or 'neighborhood of [director name] in NYC'. Examine articles, residence records, or credible directories to pinpoint the area, such as from details in personal accounts or studio addresses."
+            }
+          ]
+        },
+        {
+          "steps": [
+            {
+              "goal": "Identify the director of the romantic comedy film 'Big Stone Gap'.",
+              "instructions": "Search for the film title 'Big Stone Gap' along with 'director' to find the director's full name from authoritative sources like IMDb or film databases."
+            },
+            {
+              "goal": "Find recent information about the director's primary residence location in New York City.",
+              "instructions": "Using the director's name from Step 1, search for recent interviews, profiles, or news articles (within the last 5 years) that mention their residence, work location, or neighborhood affiliation within New York City."
+            },
+            {
+              "goal": "Determine the specific neighborhood within New York City associated with the director.",
+              "instructions": "Analyze search results from Step 2 to identify the exact neighborhood name frequently mentioned as the director's base, focusing on consistent references across multiple credible sources."
+            },
+            {
+              "goal": "Verify the neighborhood's location within New York City jurisdiction.",
+              "instructions": "Confirm the identified neighborhood is officially part of New York City by checking municipal records or geographic references to ensure it falls within the city's boundaries."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "question": "2014 S/S is the debut album of a South Korean boy group that was formed by who?",
+      "gt_answer": "YG Entertainment",
+      "plans": [
+        {
+          "steps": [
+            {
+              "goal": "Identify the South Korean boy group whose debut album is titled '2014 S/S'.",
+              "instructions": "Search for: \"2014 S/S debut album South Korean boy group\" to find the group name associated with this release."
+            },
+            {
+              "goal": "Determine the entertainment company that formed the identified boy group.",
+              "instructions": "Search for: \"<boy group name> entertainment company formed by\" using the result from step 1 to find the forming agency/company."
+            }
+          ]
+        },
+        {
+          "steps": [
+            {
+              "goal": "Identify the South Korean boy group associated with the 2014 debut album '2014 S/S'.",
+              "instructions": "Search for terms like '2014 S/S debut album boy group' to determine the group's name."
+            },
+            {
+              "goal": "Find the agency responsible for forming the identified boy group.",
+              "instructions": "Look up the group's background using phrases like 'agency that formed [Group Name] debut' or 'company behind [Group Name] K-pop group'."
+            },
+            {
+              "goal": "Verify the correct formation agency from reliable sources.",
+              "instructions": "Cross-check results with official profiles, reputable K-pop databases, or trusted news outlets to confirm the group's founding agency."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "question": "Who was known by his stage name Aladin and helped organizations improve their performance as a consultant?",
+      "gt_answer": "Eenasul Fateh",
+      "plans": [
+        {
+          "steps": [
+            {
+              "goal": "Identify individuals known by the stage name 'Aladin'.",
+              "instructions": "Search 'person with stage name Aladin'. Focus on professional profiles excluding fictional characters."
+            },
+            {
+              "goal": "Verify consulting background of identified individuals.",
+              "instructions": "Search 'Aladin consultant organizations' or 'Aladin performance expert'. Validate credentials via professional networks or bios."
+            },
+            {
+              "goal": "Confirm organizational performance improvement work.",
+              "instructions": "Search 'Aladin organizational development approach' or 'consulting methodology'. Look for evidence like case studies or client testimonials."
+            },
+            {
+              "goal": "Cross-reference all criteria for definitive identification.",
+              "instructions": "Check if the person matches: stage name 'Aladin', verified consulting career, documented organizational performance leadership."
+            }
+          ]
+        },
+        {
+          "steps": [
+            {
+              "goal": "Locate individuals using the stage name 'Aladin' in professional consulting contexts.",
+              "instructions": "Search for 'Aladin' as a stage name combined with terms like 'organizational performance consultant' or 'business improvement advisor'. Filter results to distinguish stage names from fictional characters or unrelated figures."
+            },
+            {
+              "goal": "Identify the specific consultant matching both the stage name and organizational performance expertise.",
+              "instructions": "Review search results for credible business profiles, industry articles, or professional directories confirming 'Aladin' as a stage name used in performance consulting. Prioritize sources describing methodology or client engagement."
+            },
+            {
+              "goal": "Determine the real name associated with the stage name 'Aladin'.",
+              "instructions": "Cross-reference the consultant's professional background across multiple business databases, LinkedIn profiles, or published interviews to uncover the legal name linked to the 'Aladin' persona in performance consulting."
+            },
+            {
+              "goal": "Verify consistency of the identity across authoritative sources.",
+              "instructions": "Confirm the real name appears consistently with the stage name 'Aladin' and organizational performance work through at least two independent business publications or professional verification platforms."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "question": "The arena where the Lewiston Maineiacs played their home games can seat how many people?",
+      "gt_answer": "3,677 seated",
+      "plans": [
+        {
+          "steps": [
+            {
+              "goal": "Identify the home arena of the Lewiston Maineiacs hockey team.",
+              "instructions": "Search for 'Lewiston Maineiacs home arena' to find the name and location of the arena they used."
+            },
+            {
+              "goal": "Verify seating capacity of the identified arena during the Maineiacs' active years.",
+              "instructions": "Search for '[Arena Name] seating capacity' focusing on historical specifications from 2003-2011 when the team played. Consult arena websites, hockey databases, or reputable sports history sources."
+            }
+          ]
+        },
+        {
+          "steps": [
+            {
+              "goal": "Determine the name of the arena where the Lewiston Maineiacs played their home games.",
+              "instructions": "Search for 'Lewiston Maineiacs home venue' or 'arena for Lewiston Maineiacs hockey games' to identify the specific stadium, arena, or facility associated with the team."
+            },
+            {
+              "goal": "Find the seating capacity of the identified arena.",
+              "instructions": "Search for 'seating capacity [Arena Name]' using the arena name obtained in the previous step to locate exact capacity numbers, ensuring the result includes seated capacity."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "question": "Who is older, Annie Morton or Terry Richardson?",
+      "gt_answer": "Terry Richardson",
+      "plans": [
+        {
+          "steps": [
+            {
+              "goal": "Identify the relevant Annie Morton and find her birth date.",
+              "instructions": "Search for 'Annie Morton birth date' and browse results from official sources like IMDB, Wikipedia, or verified biographies to find the birth date of the most prominent Annie Morton (likely the actress/public figure)."
+            },
+            {
+              "goal": "Identify the relevant Terry Richardson and find his birth date.",
+              "instructions": "Search for 'Terry Richardson birth date' and browse results from reliable sources to confirm the birth date of the well-known photographer/public figure."
+            },
+            {
+              "goal": "Compare birth dates to determine elder individual.",
+              "instructions": "Compare the validated birth years and months of both individuals. If birth years differ, the earlier year indicates the older person. If years match, compare months within the same year without further search."
+            }
+          ]
+        },
+        {
+          "steps": [
+            {
+              "goal": "Find the exact birth dates of both individuals.",
+              "instructions": "Perform two separate searches: 'Annie Morton date of birth' and 'Terry Richardson date of birth' using authoritative sources such as official biographies, news archives, or government records to obtain full birth dates including year, month, and day."
+            },
+            {
+              "goal": "Calculate the current age of each individual as of August 23, 2025.",
+              "instructions": "Using the birth dates obtained, compute each person's age by comparing their birth month and day against August 23, 2025. Subtract birth year from 2025, then adjust by one year if their birthday has not yet occurred in 2025."
+            },
+            {
+              "goal": "Determine who is older based on the calculated ages.",
+              "instructions": "Compare the final age values for both individuals. The person with the higher numerical age value is objectively older based on the date calculations."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "question": "Are Local H and For Against both from the United States?",
+      "gt_answer": "yes",
+      "plans": [
+        {
+          "steps": [
+            {
+              "goal": "Identify Local H's country of origin",
+              "instructions": "Search for 'Local H band origin country' on a music database or encyclopedia site. Focus on authoritative sources like AllMusic, Discogs, or the band's official biography."
+            },
+            {
+              "goal": "Identify For Against's country of origin",
+              "instructions": "Search for 'For Against band origin country' using the same method as step 1. Verify through reliable music history sources or band archives."
+            },
+            {
+              "goal": "Compare countries against the United States",
+              "instructions": "Check if both results explicitly state the country as 'United States', 'US', or 'USA' without contradictions in sources. Do not assume based on cities/states alone."
+            }
+          ]
+        },
+        {
+          "steps": [
+            {
+              "goal": "Determine the country of origin for the band Local H.",
+              "instructions": "Search authoritative music databases or encyclopedias (e.g., AllMusic, Discogs, Wikipedia) using queries such as 'Local H band origin' or 'Local H country of origin'. Verify through at least two independent sources to confirm consistency."
+            },
+            {
+              "goal": "Determine the country of origin for the band For Against.",
+              "instructions": "Search the same reliable music sources using queries like 'For Against band origin' or 'For Against country of origin'. Cross-reference findings across multiple platforms to ensure accuracy."
+            },
+            {
+              "goal": "Confirm both bands share the United States as their country of origin.",
+              "instructions": "Compare the verified country information for both bands from steps 1 and 2. Check if both entries explicitly identify the United States as their country of origin using standardized country naming conventions."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "cur_index": 10
+}
