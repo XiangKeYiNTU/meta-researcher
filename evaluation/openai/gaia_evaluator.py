@@ -12,9 +12,9 @@ class GAIAEvaluator:
         self.evaluator_model = evaluator_model
         self.client = client
 
-    def evaluate_single_question(self, task_id: str, gt_answer: str, pred_answer: str):
+    def evaluate_single_question(self, question: str, gt_answer: str, pred_answer: str):
         prompt = qa_eval_prompt.format(
-            question=task_id,
+            question=question,
             labeled_answer=gt_answer,
             pred_answer=pred_answer
         )
@@ -51,7 +51,7 @@ class GAIAEvaluator:
             # find gt answer based on task_id
             gt_answer = next((d['Final answer'] for d in dataset if d['task_id'] == task_id), None)
             if 'final_answer' in item.keys():
-                flag = self.evaluate_single_question(task_id, gt_answer, item['final_answer'])
+                flag = self.evaluate_single_question(question, gt_answer, item['final_answer'])
             else:
                 continue
             # flag = self.evaluate_single_question(task_id, gt_answer, item['step_by_step_results'][-1]['final_answer'])

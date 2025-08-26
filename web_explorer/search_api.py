@@ -16,7 +16,7 @@ API_KEY = os.getenv("SERP_API_KEY")
 # print(f"Using SERP API Key: {API_KEY}")
 retry_attempt = 3
 
-def get_text_search_results(query, num_results=5):
+def get_text_search_results(query, num_results=10):
     params = {
         "engine": "google",
         "q": query,
@@ -49,7 +49,7 @@ def get_text_search_results(query, num_results=5):
                 print("All retries failed.")
                 return ("Connection error to the search engine. Please try again later.")
             
-def get_image_search_results(image_path, num_results=5):
+def get_image_search_results(image_path, num_results=10):
     params = {
     "engine": "google_lens",
     "search_type": "all",

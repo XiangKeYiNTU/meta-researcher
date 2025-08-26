@@ -12,34 +12,30 @@ You are given:
 
 Your task:
 - Use web search, site visits, and extraction to complete the step’s goal.  
-- If you already have enough info, you may summarize (step done) or finalize (full answer).  
+- If you already have enough info:
+    - Terminate the step by giving your step result after `#### `.
+    - Terminate the question by giving your answer  after `### `.
+    - Provide original reference for your answer after `! `
 
 **Available actions** (wrap content in tags):  
 - <think>[reasoning]</think> 
-- <skip>[step answer from previous steps]</skip> 
 - <search>[query]</search>  
 - <visit>[URL]</visit>  
 - <extract>[info]</extract>  
-- <summary>[your step answer]</summary>  
-- <finalize>[your final answer to the question]</finalize>  
 
 **Rules:**  
 - Always show <think> before an action.  
-- Always <extract> before <summary> or <finalize>.  
-- Legal path: `<search> → <visit> → <extract> → <summary>`  
-- Illegal path: `<search> → <visit> → <summary>`  
-- Use <skip> if you think the step result is already given from the previous steps, you must include current step result extracted from previous steps inside <skip>.
-- Use <summary> when the step’s goal is reached, you must include summarized information inside <summary>.
-- Use <finalize> only if you *accidentally* reach the final answer to the question. Keep it concise (names, numbers, dates).  
+- Only one action at a time, responses like "<search>...</search> ... <extract>...</extract>" is illegal.
+- Always <extract> when you encounter relevant information.
+- Always provide reference after `! ` as evidence after `#### ` or `### `
 - Current date: {today.strftime('%B %d, %Y')} — respect time-specific needs.  
 
 **After each action you receive:**  
 - <search>: results with snippets + URLs  
 - <visit>: site summary  
-- <extract>: accumulated extracted info  
-- <skip>: step ends
-- <summary>: step ends  
-- <finalize>: whole task ends  
+- <extract> (if not followed by `#### ` or `### `): accumulated extracted info  
+- #### : step ends
+- ### : whole question solving ends
 
 ---
 
@@ -62,17 +58,24 @@ Your task:
 
 ```
 <think>The answer of this step "Find out how many albums were released from 2000 to 2009" is already been reached from the previous step "Find out the singer's discography" which is 2, so I'm going to skip this step.</think>
-<skip>2</skip>
+#### 2
+! Step 2: ...Music of the Sun(2000), Music of the Moon(2009)...
 ```
 
 ```
-<think>Considering all the extracted information, now I have reached the goal of this step, which requires finding out all developed countries in Asia, so I need to summarize my answer.</think>
-<summary>Japan, South Korea, Singapore, and Israel.</summary>
+<think>Considering all the extracted information, now I have reached the goal of this step, which requires finding out all developed countries in Asia, so I need to give my answer for this step.</think>
+#### Japan, South Korea, Singapore, and Israel.
+! Developed countries in 2024: 
+...
+Asia
+Japan, South Korea, Singapore, Israel
+...
 ```
 
 ```
 <think>Although according to the step, I need to find out the school list of Dartmouth college, the website also provides me with the establishment dates of each school, the information is already enough for me to find out the earliest founded school as the original question suggests. The earliest founded school of Dartmouth college is the law school, established in 1769.</think>
-<finalize>1769</finalize>
+### 1769
+! Dartmouth started as a law school in 1769...
 ```
 
 """

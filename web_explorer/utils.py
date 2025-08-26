@@ -28,14 +28,20 @@ def encode_image(image_path):
 
 def extract_action(response: str):
     # check for terminating action first
-    if "<finalize>" in response:
-        final_answer = response.split("<finalize>")[1].split("</finalize>")[0]
+    # if "<finalize>" in response:
+    #     final_answer = response.split("<finalize>")[1].split("</finalize>")[0]
+    #     return ("finalize", final_answer)
+    if "#### " in response:
+        final_answer = response.split("#### ")[-1]
+        if "! " in response:
+            reference = response.split("! ")
+            return ("finalize", final_answer + '\nreference: ' + reference)
         return ("finalize", final_answer)
-    elif "<skip>" in response:
-        skip = response.split("<skip>")[1].split("</skip>")[0]
-        return ("skip", skip)
-    elif "<summary>" in response:
-        summary = response.split("<summary>")[1].split("</summary>")[0]
+    elif "### " in response:
+        summary = response.split("### ")[-1]
+        if "! " in response:
+            reference = response.split("! ")
+            return ("summary", summary + '\nreference: ' + reference)
         return ("summary", summary)
     elif "<search>" in response:
         search_query = response.split("<search>")[1].split("</search>")[0]
@@ -106,10 +112,14 @@ def summarize_web_content_by_qwen(topic, web_content, openrouter_client):
             {"role": "system", "content": "You are a helpful assistant to summarize webpage content relevant to the given topic."},
             {"role": "user", "content": summarize_prompt}
         ],
-        max_tokens=2000,  # Adjust as needed
+        max_tokens=5000,  # Adjust as needed
     )
     # return response # debug
-    return response.choices[0].message.content
+    res = response.choices[0].message.content
+    if '</think>' in res:
+        return res.split('</think>')[-1]
+    else:
+        return res
 
 def load_plan(plan_path: str):
     # Read from file
