@@ -146,7 +146,7 @@ class StepExecutor:
             if not action:
                 messages.append({
                     "role": "user", 
-                    "content": "Please specify an action using: <search>, <visit>, <extract>, or <summary>, <skip>, and <finalize>"
+                    "content": "Please specify an action using: <search>, <visit>, <extract>, or terminating step using `### ` or `#### `"
                 })
                 continue
                 
@@ -179,7 +179,7 @@ class StepExecutor:
             else:
                 messages.append({
                     "role": "user",
-                    "content": "Invalid action. Use: <search>, <visit>, <extract>, <summary>, or <finalize>"
+                    "content": "Invalid action. Use: <search>, <visit>, <extract>, or terminating step using `### ` or `#### `"
                 })
         
         # If max iterations reached, force final summary from model
@@ -189,7 +189,7 @@ class StepExecutor:
         if search_count >= 5:
             messages.append({
                 "role": "user",
-                "content": "Search quota reached. Please provide <summary> or <finalize>."
+                "content": "Search quota reached. Please provide your answer after `#### `."
             })
             action_step["action_result"] = "search quota reached"
             actions.append(action_step)
@@ -215,7 +215,7 @@ class StepExecutor:
         if visit_count >= 10:
             messages.append({
                 "role": "user",
-                "content": "Visit quota reached. Please provide <summary> or <finalize>."
+                "content": "Visit quota reached. Please provide your answer after `#### `."
             })
             action_step["action_result"] = "visit quota reached"
             actions.append(action_step)
@@ -256,7 +256,7 @@ class StepExecutor:
         for info in recent_extractions:
             user_message += f"- {info}\n"
 
-        user_message += f"Decide if the info is enough to answer. If enough, use <summary> to give answer of the step or <finalize> to give answer of the question. If not enough, decide the next <search> or <visit> action."
+        user_message += f"Decide if the info is enough to answer. If enough, use `#### ` to give answer of the step or `### ` to give answer of the question. If not enough, decide the next <search> or <visit> action."
         
         messages.append({"role": "user", "content": user_message})
         action_step["action_result"] = extracted_info[-1]  # Only store the latest extraction
@@ -286,10 +286,9 @@ Actions performed: {len(actions)} total actions
 - Visits: {len([a for a in actions if a["action"] == "visit"])}
 - Extractions: {len([a for a in actions if a["action"] == "extract"])}
 
-Please provide a comprehensive summary of what you have found relevant to the current step goal. 
-Use <summary>your final summary here</summary> format.
+Please provide a comprehensive summary of what you have found relevant to the current step goal after `#### `.
 
-If you have sufficient information to provide a final answer to the original question, use <finalize>your final answer</finalize> instead.
+If you have sufficient information to provide a final answer to the original question after `### ` instead.
 """
         
         # Add the summary prompt
