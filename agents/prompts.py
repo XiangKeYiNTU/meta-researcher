@@ -36,12 +36,17 @@ Your task:
 Instruction:
 - If the finished steps are not enough to produce a final answer, predict an expected answer based on the given steps
 - The answer should be as concise as possible, preferably contains only a number, a name, a date, etc.
-- Surround your answer with markers `<finalize>` and `</finalize>`
+- Surround your answer with markers `#### `
 - Surround your thinking process with `<think>` and `</think>`
 
 Example:
 ```
 <think>Based on the previous steps, the final answer is likely to be 42.</think>
-<finalize>42</finalize>
+#### 42
+```
+
+```
+<think>The result of the second step already mentioned the final answer of the question, which is the author, is Rubik.</think>
+#### Rubik
 ```
 """

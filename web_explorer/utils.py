@@ -31,14 +31,14 @@ def extract_action(response: str):
     # if "<finalize>" in response:
     #     final_answer = response.split("<finalize>")[1].split("</finalize>")[0]
     #     return ("finalize", final_answer)
+    # if "#### " in response:
+    #     final_answer = response.split("#### ")[-1]
+    #     if "! " in response:
+    #         reference = response.split("! ")[-1]
+    #         return ("finalize", final_answer + '\nreference: ' + reference)
+    #     return ("finalize", final_answer)
     if "#### " in response:
-        final_answer = response.split("#### ")[-1]
-        if "! " in response:
-            reference = response.split("! ")[-1]
-            return ("finalize", final_answer + '\nreference: ' + reference)
-        return ("finalize", final_answer)
-    elif "### " in response:
-        summary = response.split("### ")[-1]
+        summary = response.split("#### ")[-1]
         if "! " in response:
             reference = response.split("! ")[-1]
             return ("summary", summary + '\nreference: ' + reference)

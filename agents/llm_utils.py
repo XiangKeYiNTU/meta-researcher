@@ -39,10 +39,13 @@ def extract_finalized_answer(response: str) -> Tuple[str, Optional[str]]:
             - status: "success" if extraction succeeded, error message otherwise
             - content: The extracted content if successful, None otherwise
     """
-    index = re.search(r"<finalize>(.*?)</finalize>", response, re.DOTALL)
+    # index = re.search(r"<finalize>(.*?)</finalize>", response, re.DOTALL)
 
-    if not index:
-        # raise ValueError("Response does not contain valid <finalize> markers.")
-        return ("Please provide your response between `<finalize>` and `</finalize>`", None)
+    # if not index:
+    #     # raise ValueError("Response does not contain valid <finalize> markers.")
+    #     return ("Please provide your response between `<finalize>` and `</finalize>`", None)
 
-    return ("success", index.group(1).strip())
+    # return ("success", index.group(1).strip())
+    if "#### " in response:
+        answer = response.split("#### ")[-1].strip()
+    return ("success", answer) if answer else ("No final answer found.", None)

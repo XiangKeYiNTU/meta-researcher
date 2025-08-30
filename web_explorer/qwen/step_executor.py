@@ -82,7 +82,7 @@ class StepExecutor:
             for step, answer in self.finished_steps[-2:]:
                 previous_steps += f"Step: {step.goal}\nAnswer: {answer[:500]}...\n\n"
 
-        user_prompt = f"Question: {self.question}\n\nPrevious steps:\n{previous_steps}Current step: {self.current_step.goal}\n\nInstructions: {self.current_step.instructions}"
+        user_prompt = f"Previous steps:\n{previous_steps}Current step: {self.current_step.goal}\n\nInstructions: {self.current_step.instructions}"
 
         # Parse file content (truncate if too long)
         if self.file_path:
@@ -146,7 +146,7 @@ class StepExecutor:
             if not action:
                 messages.append({
                     "role": "user", 
-                    "content": "Please specify an action using: <search>, <visit>, <extract>, or terminating step using `### ` or `#### `"
+                    "content": "Please specify an action using: <search>, <visit>, <extract>, or terminating step using `#### `"
                 })
                 continue
                 
@@ -179,7 +179,7 @@ class StepExecutor:
             else:
                 messages.append({
                     "role": "user",
-                    "content": "Invalid action. Use: <search>, <visit>, <extract>, or terminating step using `### ` or `#### `"
+                    "content": "Invalid action. Use: <search>, <visit>, <extract>, or terminating step using `#### `"
                 })
         
         # If max iterations reached, force final summary from model
@@ -256,7 +256,7 @@ class StepExecutor:
         for info in recent_extractions:
             user_message += f"- {info}\n"
 
-        user_message += f"Decide if the info is enough to answer. If enough, use `#### ` to give answer of the step or `### ` to give answer of the question. If not enough, decide the next <search> or <visit> action."
+        user_message += f"Decide if the info is enough to answer. If enough, use `#### ` to give answer of the step. If not enough, decide the next <search> or <visit> action."
         
         messages.append({"role": "user", "content": user_message})
         action_step["action_result"] = extracted_info[-1]  # Only store the latest extraction
@@ -287,8 +287,6 @@ Actions performed: {len(actions)} total actions
 - Extractions: {len([a for a in actions if a["action"] == "extract"])}
 
 Please provide a comprehensive summary of what you have found relevant to the current step goal after `#### `.
-
-If you have sufficient information to provide a final answer to the original question after `### ` instead.
 """
         
         # Add the summary prompt
