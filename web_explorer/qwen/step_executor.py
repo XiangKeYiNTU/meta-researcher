@@ -17,13 +17,12 @@ from web_explorer.visit_api import visit
 from document_tools.document_parser import DocumentParser
 
 class StepExecutor:
-    def __init__(self, generator: pipeline, streamer: TextStreamer, current_step: Step, question: str, qwen_client: OpenAI, 
+    def __init__(self, generator: pipeline, streamer: TextStreamer, current_step: Step, qwen_client: OpenAI, 
                  finished_steps: List[Tuple[Step, str]] = None, file_path: str = None, max_context_tokens: int = 16000):
         self.generator = generator
         self.streamer = streamer
         self.finished_steps = finished_steps or []
         self.current_step = current_step
-        self.question = question
         self.file_path = file_path
         self.qwen_client = qwen_client
         self.max_context_tokens = max_context_tokens

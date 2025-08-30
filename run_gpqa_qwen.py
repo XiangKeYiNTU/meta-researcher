@@ -40,28 +40,26 @@ def process_tasks_with_error_handling(test_set: List[Dict], meta_generator, exec
     failed_tasks = 0
     
     for i, task in enumerate(test_set):
-        task_id = task.get('task_id', f'task_{i}')
+        task_id = task.get('Record ID', f'task_{i}')
         logger.info(f"Starting task {i+1}/{len(test_set)}: {task_id}")
         
-        # Skip tasks without file_path (if that's your condition)
-        if task.get('file_path', "") == "":
-            result = process_single_task(task, meta_generator, executor_generator, meta_streamer, executor_streamer, qwen_client, i+1, len(test_set), max_retries)
-            result_json.append(result)
-            
-            if result.get('status') == 'success':
-                successful_tasks += 1
-            else:
-                failed_tasks += 1
+        result = process_single_task(task, meta_generator, executor_generator, meta_streamer, executor_streamer, qwen_client, i+1, len(test_set), max_retries)
+        result_json.append(result)
+        
+        if result.get('status') == 'success':
+            successful_tasks += 1
         else:
-            logger.info(f"Skipping task {task_id} - has file_path")
-            result = {
-                "task_id": task_id,
-                "question": task.get('Question', ''),
-                "status": "skipped",
-                "error": "Task has file_path - skipped per condition",
-                "step_by_step_results": []
-            }
-            result_json.append(result)
+            failed_tasks += 1
+        # else:
+        #     logger.info(f"Skipping task {task_id} - has file_path")
+        #     result = {
+        #         "task_id": task_id,
+        #         "question": task.get('Question', ''),
+        #         "status": "skipped",
+        #         "error": "Task has file_path - skipped per condition",
+        #         "step_by_step_results": []
+        #     }
+        #     result_json.append(result)
     
     logger.info(f"Task processing completed. Successful: {successful_tasks}, Failed: {failed_tasks}, Total: {len(test_set)}")
     return result_json
@@ -73,13 +71,15 @@ def process_single_task(task: Dict, meta_generator, executor_generator, meta_str
     Returns:
         Dict containing task result with status information
     """
-    task_id = task.get('task_id', f'task_{task_num}')
+    task_id = task.get('Record ID', f'task_{task_num}')
     question = task.get('Question', '')
+    domain = task.get('High-level domain', '')
     
     # Initialize result structure
     result = {
         "task_id": task_id,
         "question": question,
+        "domain": domain,
         "step_by_step_results": [],
         "status": "failed",  # Will be updated to "success" if completed
         "error": None,
@@ -239,10 +239,10 @@ class TaskProcessingError(Exception):
         super().__init__(f"{stage}: {message}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run the Meta Planning Runner with GAIA benchmark.")
+    parser = argparse.ArgumentParser(description="Run the Meta Planning Runner with GPQA-Diamond benchmark.")
 
-    parser.add_argument("--level", type=str, default="1", help="The level of the GAIA benchmark.")
-    parser.add_argument("--split", type=str, default="validation", help="The split of the GAIA benchmark.")
+    # parser.add_argument("--level", type=str, default="1", help="The level of the GAIA benchmark.")
+    # parser.add_argument("--split", type=str, default="validation", help="The split of the GAIA benchmark.")
     parser.add_argument("--meta_model_name_or_path", type=str, default="Qwen/Qwen2.5-32B", help="Meta model ID or path.")
     parser.add_argument("--executor_model_name_or_path", type=str, default="Qwen/Qwen2.5-32B", help="Executor model ID or path.")
 
@@ -273,9 +273,8 @@ if __name__ == "__main__":
                     api_key=os.getenv("OPENROUTER_API_KEY"),
                 )
 
-    # load the GAIA benchmark
-    test_set = load_dataset("./dataset/GAIA/GAIA.py", name=f"2023_level{args.level}", data_dir=".", split=args.split, trust_remote_code=True)
-
+    # load the GPQA-Diamond benchmark
+    test_set = load_dataset("Idavidrein/gpqa", "gpqa_diamond")
     # result_json = process_tasks_with_error_handling(test_set, meta_generator, executor_generator, executor_streamer=executor_streamer, qwen_client, max_retries=2)
     result_json = process_tasks_with_error_handling(test_set=test_set,
                                                     meta_generator=meta_generator,
@@ -284,7 +283,7 @@ if __name__ == "__main__":
                                                     executor_streamer=executor_streamer,
                                                     qwen_client=qwen_client)
 
-    with open(f"GAIA_level{args.level}_{args.split}_qwen_results.json", "w", encoding="utf-8") as f:
+    with open(f"GPQA_qwen_results.json", "w", encoding="utf-8") as f:
         json.dump(result_json, f, indent=4)
 
     successful = sum(1 for r in result_json if r.get('status') == 'success')
