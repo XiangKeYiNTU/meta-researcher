@@ -39,13 +39,19 @@ def extract_action(response: str):
     #     return ("finalize", final_answer)
     if "#### " in response:
         summary = response.split("#### ")[-1]
-        return ("summary", summary)
+        if "! " in summary:
+            summary, reference = summary.split("! ", 1)
+            return ("summary", summary.strip(), reference.strip())
+        return ("summary", summary.strip(), None)
     elif "<search>" in response:
         search_query = response.split("<search>")[1].split("</search>")[0]
         return ("search", search_query)
     elif "<visit>" in response:
         visit_link = response.split("<visit>")[1].split("</visit>")[0]
-        return ("visit", visit_link)
+        if "<topic>" in response:
+            topic = response.split("<topic>")[1].split("</topic>")[0]
+            return ("visit", visit_link, topic)
+        return ("visit", visit_link, None)
     elif "<extract>" in response:
         extracted_info = response.split("<extract>")[1].split("</extract>")[0]
         return ("extract", extracted_info)

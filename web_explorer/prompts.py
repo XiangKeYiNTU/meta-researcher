@@ -17,12 +17,14 @@ Your task:
 **Available actions** (wrap content in tags):  
 - <think>[reasoning]</think> 
 - <search>[query]</search>  
-- <visit>[URL]</visit>  
-- <extract>[info]</extract>  
+- <visit>[URL]</visit> <topic>[topic to summarize]</topic>
+- <extract>[info]</extract>
+- #### [answer] ! [reference]
 
 **Rules:**  
 - Always show <think> before an action.  
 - Only one action at a time, responses like "<search>...</search> ... <extract>...</extract>" is illegal.
+- Always give a <topic> when <visit>.
 - Always <extract> when you encounter relevant information.
 - Always provide reference after `! ` as evidence after `#### `
 - Current date: {today.strftime('%B %d, %Y')} — respect time-specific needs.  
@@ -45,6 +47,7 @@ Your task:
 ```
 <think>Now I need to take a look at the school list of Dartmouth college from the official website that appears in the search results to confirm if Dartmouth has a law school.</think>
 <visit>https://www.dartmouth.edu/schools</visit>
+<topic>Dartmouth school list</topic>
 ```
 
 ```

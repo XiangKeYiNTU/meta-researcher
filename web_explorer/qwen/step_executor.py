@@ -221,6 +221,7 @@ class StepExecutor:
             return False
         
         url = action[1]
+        topic = action[2]
         if url in visit_cache:
             web_summary = visit_cache[url]
             user_prompt = "CACHED VISIT:\n"
@@ -229,11 +230,9 @@ class StepExecutor:
             raw_content = visit(url)
             short_content = truncate_markdown(raw_content, max_tokens=8000)  # Reduced token limit
             # pre define topic
-            topic = self.current_step.goal
-            # get last search keyword
-            for action in reversed(actions):
-                if action['action'] == "search":
-                    topic = action['param']
+            # topic = self.current_step.goal
+            if not topic:
+                topic = self.current_step.goal
             web_summary = summarize_web_content_by_qwen(topic, short_content, self.qwen_client)
             user_prompt = f"Website summary:\n```web_content\n{str(web_summary)}\n```"  # Truncate summary
             visit_cache[url] = web_summary
