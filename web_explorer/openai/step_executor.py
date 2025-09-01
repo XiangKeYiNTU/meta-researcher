@@ -30,7 +30,7 @@ class StepExecutor:
             for step, answer in self.finished_steps:
                 previous_steps += f"Step: {step.goal}\nAnswer: {answer}\n\n"
 
-        user_query = f"Question: {self.question}\n\nPrevious steps and results:\n{previous_steps}Current step: {self.current_step.goal}\n\nInstructions: {self.current_step.instructions}"
+        user_query = f"Previous steps and results:\n{previous_steps}Current step: {self.current_step.goal}\n\nInstructions: {self.current_step.instructions}"
 
         # Start execution
         extracted_info = []
@@ -177,12 +177,15 @@ class StepExecutor:
                     # search_cache[action[1]] = search_results
                     continue
             elif action[0] == "visit":
+                topic = action[2]
+                if not topic:
+                    topic = self.current_step.goal
                 if action[1] in visit_cache:
                     raw_content = visit_cache[action[1]]
                     print("WARNING: repeated visit")
                     short_content = truncate_markdown(raw_content, max_tokens=20000)
                     web_summary = summarize_web_content_by_qwen(
-                        step.goal, short_content, self.qwen_client
+                        self.current_step.goal, short_content, self.qwen_client
                     )
                     user_prompt = "WARNING: repeated visit\n" + "Here's a summary of the requested website:\n```web_content\n" + str(web_summary) + "\n```"
                 else:
@@ -191,7 +194,7 @@ class StepExecutor:
                 # raw_content = visit(action[1])
                     short_content = truncate_markdown(raw_content, max_tokens=20000)
                     web_summary = summarize_web_content_by_qwen(
-                        step.goal, short_content, self.qwen_client
+                        self.current_step.goal, short_content, self.qwen_client
                     )
                     user_prompt = "Here's a summary of the requested website:\n```web_content\n" + str(web_summary) + "\n```"
                 input.append({
@@ -214,15 +217,17 @@ class StepExecutor:
                 actions.append(action_step)
                 continue
             elif action[0] == "summary":
-                step_results = {"goal": step.goal,
+                reference = action[2]
+                step_results = {"goal": self.current_step.goal,
                                 "result": action[1],
+                                "reference": reference if reference else "No reference provided",
                                 "found relevant info": extracted_info,
                                 "search count": search_count,
                                 "actions": actions}
                 # self.finished_steps.append(step_results)
                 return step_results
             elif action[0] == "finalize":
-                step_results = {"goal": step.goal,
+                step_results = {"goal": self.current_step.goal,
                                 "result": f"Final answer: {action[1]}",
                                 "found relevant info": extracted_info,
                                 "search count": search_count,

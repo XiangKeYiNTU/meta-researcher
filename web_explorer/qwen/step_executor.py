@@ -222,8 +222,11 @@ class StepExecutor:
         
         url = action[1]
         topic = action[2]
+        if not topic:
+                topic = self.current_step.goal
         if url in visit_cache:
-            web_summary = visit_cache[url]
+            web_content = visit_cache[url]
+            web_summary = summarize_web_content_by_qwen(topic, web_content, self.qwen_client)
             user_prompt = "CACHED VISIT:\n"
             user_prompt += f"Website summary:\n```web_content\n{str(web_summary)}\n```"
         else:
@@ -231,8 +234,6 @@ class StepExecutor:
             short_content = truncate_markdown(raw_content, max_tokens=8000)  # Reduced token limit
             # pre define topic
             # topic = self.current_step.goal
-            if not topic:
-                topic = self.current_step.goal
             web_summary = summarize_web_content_by_qwen(topic, short_content, self.qwen_client)
             user_prompt = f"Website summary:\n```web_content\n{str(web_summary)}\n```"  # Truncate summary
             visit_cache[url] = web_summary
