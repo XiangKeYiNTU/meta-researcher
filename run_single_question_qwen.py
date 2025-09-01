@@ -1,7 +1,7 @@
 import os
 import torch
 from openai import OpenAI
-from transformers import pipeline
+from transformers import pipeline, TextStreamer
 
 
 from tree_search.qwen.meta_tree_search_runner import MetaPlanner
@@ -36,7 +36,10 @@ if __name__ == "__main__":
         trust_remote_code=True
     )
 
-    plan_runner = MetaPlanner(generator=generator,question=args.question,file_path=args.file_path)
+    streamer = TextStreamer(generator.tokenizer, skip_prompt=True, skip_special_tokens=True)
+
+
+    plan_runner = MetaPlanner(generator=generator, streamer=streamer,question=args.question,file_path=args.file_path)
 
     search_tree = plan_runner.run()
     top_plans = search_tree.select_top_plans()
@@ -44,7 +47,7 @@ if __name__ == "__main__":
     plan_graph = PlanGraph()
     plan_graph.add_plan_list(top_plans)
 
-    meta_agent = MetaAgent(plan_graph=plan_graph, question=args.question, generator=generator)
+    meta_agent = MetaAgent(plan_graph=plan_graph, question=args.question, generator=generator, streamer=streamer)
     while True:
         next_step = meta_agent.generate_next_step()
         if next_step.goal == "END":
@@ -57,6 +60,7 @@ if __name__ == "__main__":
         finished_steps = meta_agent.plan_graph.get_current_exec_results()
         step_executor = StepExecutor(
             generator=generator,
+            streamer=streamer,
             current_step=next_step,
             question=args.question,
             finished_steps=finished_steps,
