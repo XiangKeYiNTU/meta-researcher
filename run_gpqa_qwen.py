@@ -274,7 +274,7 @@ if __name__ == "__main__":
                 )
 
     # load the GPQA-Diamond benchmark
-    test_set = load_dataset("Idavidrein/gpqa", "gpqa_diamond")
+    test_set = load_dataset("Idavidrein/gpqa", "gpqa_diamond")['train'] # gpqa-diamond only contains train set
     # result_json = process_tasks_with_error_handling(test_set, meta_generator, executor_generator, executor_streamer=executor_streamer, qwen_client, max_retries=2)
     result_json = process_tasks_with_error_handling(test_set=test_set,
                                                     meta_generator=meta_generator,

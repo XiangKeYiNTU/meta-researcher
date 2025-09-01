@@ -39,9 +39,6 @@ def extract_action(response: str):
     #     return ("finalize", final_answer)
     if "#### " in response:
         summary = response.split("#### ")[-1]
-        if "! " in response:
-            reference = response.split("! ")[-1]
-            return ("summary", summary + '\nreference: ' + reference)
         return ("summary", summary)
     elif "<search>" in response:
         search_query = response.split("<search>")[1].split("</search>")[0]
