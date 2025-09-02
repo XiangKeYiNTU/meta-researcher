@@ -12,10 +12,9 @@ from web_explorer.visit_api import visit
 
 
 class StepExecutor:
-    def __init__(self, current_step: Step, question: str, openai_client: OpenAI, qwen_client: OpenAI, finished_steps: List[Tuple[Step, str]] = None, file_path: str = None, model: str = "gpt-4o-mini"):
+    def __init__(self, current_step: Step, openai_client: OpenAI, qwen_client: OpenAI, finished_steps: List[Tuple[Step, str]] = None, file_path: str = None, model: str = "gpt-4o-mini"):
         self.finished_steps = finished_steps
         self.current_step = current_step
-        self.question = question
         self.file_path = file_path
         self.model = model
         self.openai_client = openai_client
@@ -35,6 +34,7 @@ class StepExecutor:
         # Start execution
         extracted_info = []
         search_count = 0
+        visit_count = 0
         if self.file_path:
             if self.file_path.endswith(".pdf"):
                 # Directly upload the file to OpenAI
@@ -149,10 +149,10 @@ class StepExecutor:
             action_step = {"action": action[0], "param": action[1] if len(action) > 1 else None}
             if action[0] == "search":
                 search_count += 1
-                if search_count > 5:
+                if search_count > 10:
                     user_message = {
                         "role": "user",
-                        "content": "Search quota reached. Please provide a final answer using <summary>."
+                        "content": "Search quota reached. Please provide a final answer using <answer>."
                     }
                     input.append(user_message)
                     action_step["action_result"] = "search quota reached"
@@ -177,15 +177,25 @@ class StepExecutor:
                     # search_cache[action[1]] = search_results
                     continue
             elif action[0] == "visit":
+                visit_count += 1
+                if visit_count > 20:
+                    user_message = {
+                        "role": "user",
+                        "content": "Visit quota reached. Please provide a final answer using <answer>."
+                    }
+                    input.append(user_message)
+                    action_step["action_result"] = "visit quota reached"
+                    actions.append(action_step)
+                    continue
                 topic = action[2]
                 if not topic:
                     topic = self.current_step.goal
                 if action[1] in visit_cache:
                     raw_content = visit_cache[action[1]]
-                    print("WARNING: repeated visit")
+                    # print("WARNING: repeated visit")
                     short_content = truncate_markdown(raw_content, max_tokens=20000)
                     web_summary = summarize_web_content_by_qwen(
-                        self.current_step.goal, short_content, self.qwen_client
+                        topic, short_content, self.qwen_client
                     )
                     user_prompt = "WARNING: repeated visit\n" + "Here's a summary of the requested website:\n```web_content\n" + str(web_summary) + "\n```"
                 else:
@@ -194,7 +204,7 @@ class StepExecutor:
                 # raw_content = visit(action[1])
                     short_content = truncate_markdown(raw_content, max_tokens=20000)
                     web_summary = summarize_web_content_by_qwen(
-                        self.current_step.goal, short_content, self.qwen_client
+                        topic, short_content, self.qwen_client
                     )
                     user_prompt = "Here's a summary of the requested website:\n```web_content\n" + str(web_summary) + "\n```"
                 input.append({
@@ -218,26 +228,29 @@ class StepExecutor:
                 continue
             elif action[0] == "summary":
                 reference = action[2]
-                step_results = {"goal": self.current_step.goal,
-                                "result": action[1],
-                                "reference": reference if reference else "No reference provided",
-                                "found relevant info": extracted_info,
-                                "search count": search_count,
-                                "actions": actions}
+                step_results = {
+                    "goal": self.current_step.goal,
+                    "result": action[1],
+                    "reference": reference if reference else "No reference provided",
+                    "found_relevant_info": extracted_info,
+                    "search_count": search_count,
+                    "visit_count": visit_count,
+                    "actions": actions
+                }
                 # self.finished_steps.append(step_results)
                 return step_results
-            elif action[0] == "finalize":
-                step_results = {"goal": self.current_step.goal,
-                                "result": f"Final answer: {action[1]}",
-                                "found relevant info": extracted_info,
-                                "search count": search_count,
-                                "actions": actions}
-                # self.finished_steps.append(step_results)
-                # print(f"Final answer: {action[1]}")
-                return step_results
+            # elif action[0] == "finalize":
+            #     step_results = {"goal": self.current_step.goal,
+            #                     "result": f"Final answer: {action[1]}",
+            #                     "found relevant info": extracted_info,
+            #                     "search count": search_count,
+            #                     "actions": actions}
+            #     # self.finished_steps.append(step_results)
+            #     # print(f"Final answer: {action[1]}")
+            #     return step_results
             else:
                 input.append({
                     "role": "user",
-                    "content": "The response format is invalid, you must include the available action markers: <search>, <visit>, <extract>, <summary>"
+                    "content": "The response format is invalid, you must include the available action markers: <search>, <visit>, <extract>, <answer>"
                 })
                 continue

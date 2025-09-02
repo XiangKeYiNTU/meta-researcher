@@ -14,6 +14,7 @@ Your task:
 
 Instructions:
 - Each step should have a clear goal and instructions on how to achieve it.
+- Provide selected relevant context from question in instructions, since the executor execute step-by-step and can't access the whole question.
 - Each step should be able to execute within two searches.
 - The current date is {today.strftime('%B %d, %Y')}, be careful when the question involves time-sensitive information.
 - You must output the steps in order, with the goal of each step surrounded by `<goal>` and `</goal>`, and the instruction surrounded by `<instruct>` and `</instruct>`.

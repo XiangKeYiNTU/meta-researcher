@@ -51,21 +51,23 @@ class StepExecutor:
         summary = "Previous actions summary:\n"
         
         # Group actions by type
-        searches = [a for a in actions if a["action"] == "search"]
-        visits = [a for a in actions if a["action"] == "visit"]
-        extracts = [a for a in actions if a["action"] == "extract"]
+        searches = [a['param'] for a in actions if a["action"] == "search"]
+        visits = [a['param'] for a in actions if a["action"] == "visit"]
+        extracts = [a['param'] for a in actions if a["action"] == "extract"]
         
         if searches:
-            summary += f"- Performed {len(searches)} searches\n"
+            keywords = ' '.join(searches)
+            summary += f"- Performed {len(searches)} searches with keywords: {keywords}\n"
         if visits:
-            summary += f"- Visited {len(visits)} websites\n"
+            url = '\n'.join(visits)
+            summary += f"- Visited {len(visits)} websites:\n{url}\n"
         if extracts:
             summary += f"- Extracted {len(extracts)} pieces of information\n"
         
         # Include extracted info (most important)
         if extracted_info:
             summary += "\nExtracted information:\n"
-            for info in extracted_info[-5:]:  # Only last 5 extractions
+            for info in extracted_info:  # Only last 5 extractions
                 summary += f"- {info}\n"
         
         return summary
@@ -78,8 +80,8 @@ class StepExecutor:
             # Summarize previous steps instead of including full details
             previous_steps = f"Previous steps completed: {len(self.finished_steps)}\n"
             # Only include the last 2 completed steps in detail
-            for step, answer in self.finished_steps[-2:]:
-                previous_steps += f"Step: {step.goal}\nAnswer: {answer[:500]}...\n\n"
+            for step, answer in self.finished_steps:
+                previous_steps += f"Step: {step.goal}\nAnswer: {answer}\n\n"
 
         user_prompt = f"Previous steps:\n{previous_steps}Current step: {self.current_step.goal}\n\nInstructions: {self.current_step.instructions}"
 
@@ -135,7 +137,7 @@ class StepExecutor:
             else:
                 response = str(result)
             
-            print(f"Model response (iteration {iteration_count}): {response[:200]}...")
+            # print(f"Model response (iteration {iteration_count}): {response[:200]}...")
             
             # Add assistant response to messages
             messages.append({"role": "assistant", "content": response})
@@ -145,7 +147,7 @@ class StepExecutor:
             if not action:
                 messages.append({
                     "role": "user", 
-                    "content": "Please specify an action using: <search>, <visit>, <extract>, or terminating step using `#### `"
+                    "content": "Please specify an action using: <search>, <visit>, <extract>, or <answer>"
                 })
                 continue
                 
@@ -169,26 +171,26 @@ class StepExecutor:
             elif action[0] == "summary":
                 return self._create_step_results(action, extracted_info, search_count, actions)
             
-            elif action[0] == "skip":
-                return self._create_step_results(action, extracted_info, search_count, actions)
+            # elif action[0] == "skip":
+            #     return self._create_step_results(action, extracted_info, search_count, actions)
                 
-            elif action[0] == "finalize":
-                return self._create_final_results(action, extracted_info, search_count, actions)
+            # elif action[0] == "finalize":
+            #     return self._create_final_results(action, extracted_info, search_count, actions)
                 
             else:
                 messages.append({
                     "role": "user",
-                    "content": "Invalid action. Use: <search>, <visit>, <extract>, or terminating step using `#### `"
+                    "content": "Invalid action. Use: <search>, <visit>, <extract>, or terminating step using <answer>"
                 })
         
         # If max iterations reached, force final summary from model
         return self._force_final_summary(messages, extracted_info, search_count, actions)
     
     def _handle_search_action(self, action, search_count, search_cache, messages, actions, action_step):
-        if search_count >= 5:
+        if search_count >= 10:
             messages.append({
                 "role": "user",
-                "content": "Search quota reached. Please provide your answer after `#### `."
+                "content": "Search quota reached. Please provide your answer after <answer>."
             })
             action_step["action_result"] = "search quota reached"
             actions.append(action_step)
@@ -211,10 +213,10 @@ class StepExecutor:
         return True
     
     def _handle_visit_action(self, action, visit_count, visit_cache, messages, actions, action_step):
-        if visit_count >= 10:
+        if visit_count >= 50:
             messages.append({
                 "role": "user",
-                "content": "Visit quota reached. Please provide your answer after `#### `."
+                "content": "Visit quota reached. Please provide your answer using <answer>."
             })
             action_step["action_result"] = "visit quota reached"
             actions.append(action_step)
@@ -231,12 +233,12 @@ class StepExecutor:
             user_prompt += f"Website summary:\n```web_content\n{str(web_summary)}\n```"
         else:
             raw_content = visit(url)
-            short_content = truncate_markdown(raw_content, max_tokens=8000)  # Reduced token limit
+            short_content = truncate_markdown(raw_content)  # Reduced token limit
             # pre define topic
             # topic = self.current_step.goal
             web_summary = summarize_web_content_by_qwen(topic, short_content, self.qwen_client)
             user_prompt = f"Website summary:\n```web_content\n{str(web_summary)}\n```"  # Truncate summary
-            visit_cache[url] = web_summary
+            visit_cache[url] = short_content
         
         # short_content = truncate_markdown(raw_content, max_tokens=8000)  # Reduced token limit
         # web_summary = summarize_web_content_by_qwen(self.current_step.goal, short_content, self.qwen_client)
@@ -255,7 +257,7 @@ class StepExecutor:
         for info in recent_extractions:
             user_message += f"- {info}\n"
 
-        user_message += f"Decide if the info is enough to answer. If enough, use `#### ` to give answer of the step. If not enough, decide the next <search> or <visit> action."
+        user_message += f"Decide if the info is enough to answer. If enough, use <answer> to give answer of the step. If not enough, decide the next <search> or <visit> action."
         
         messages.append({"role": "user", "content": user_message})
         action_step["action_result"] = extracted_info[-1]  # Only store the latest extraction
@@ -285,7 +287,7 @@ Actions performed: {len(actions)} total actions
 - Visits: {len([a for a in actions if a["action"] == "visit"])}
 - Extractions: {len([a for a in actions if a["action"] == "extract"])}
 
-Please provide a comprehensive summary of what you have found relevant to the current step goal after `#### `.
+Please provide a comprehensive summary of what you have found relevant to the current step goal using <answer>.
 """
         
         # Add the summary prompt
@@ -310,12 +312,9 @@ Please provide a comprehensive summary of what you have found relevant to the cu
             # Try to extract summary or finalize action from response
             action = extract_action(response)
             
-            if action and action[0] in ["summary", "finalize"]:
+            if action and action[0] == "summary":
                 # Use the extracted action
-                if action[0] == "summary":
-                    return self._create_step_results(action, extracted_info, search_count, actions)
-                else:  # finalize
-                    return self._create_final_results(action, extracted_info, search_count, actions)
+                return self._create_step_results(action, extracted_info, search_count, actions)
             else:
                 # If no proper action format, use the entire response as summary
                 fallback_action = ["summary", response]
@@ -329,24 +328,28 @@ Please provide a comprehensive summary of what you have found relevant to the cu
             return self._create_step_results(fallback_action, extracted_info, search_count, actions)
     
     def _create_step_results(self, action, extracted_info, search_count, actions):
-        return {
+        reference = action[2]
+        step_results = {
             "goal": self.current_step.goal,
             "result": action[1],
+            "reference": reference if reference else "No reference provided",
             "found_relevant_info": extracted_info,
             "search_count": search_count,
             "visit_count": len([a for a in actions if a["action"] == "visit"]),
-            "total_actions": len(actions)
+            "actions": actions
         }
+        # self.finished_steps.append(step_results)
+        return step_results
     
-    def _create_final_results(self, action, extracted_info, search_count, actions):
-        return {
-            "goal": self.current_step.goal,
-            "result": f"Final answer: {action[1]}",
-            "found_relevant_info": extracted_info,
-            "search_count": search_count,
-            "visit_count": len([a for a in actions if a["action"] == "visit"]),
-            "total_actions": len(actions)
-        }
+    # def _create_final_results(self, action, extracted_info, search_count, actions):
+    #     return {
+    #         "goal": self.current_step.goal,
+    #         "result": f"Final answer: {action[1]}",
+    #         "found_relevant_info": extracted_info,
+    #         "search_count": search_count,
+    #         "visit_count": len([a for a in actions if a["action"] == "visit"]),
+    #         "total_actions": len(actions)
+    #     }
 
 
 if __name__ == "__main__":

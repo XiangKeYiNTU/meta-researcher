@@ -37,12 +37,12 @@ def extract_action(response: str):
     #         reference = response.split("! ")[-1]
     #         return ("finalize", final_answer + '\nreference: ' + reference)
     #     return ("finalize", final_answer)
-    if "#### " in response:
-        summary = response.split("#### ")[-1]
-        if "! " in summary:
-            summary, reference = summary.split("! ", 1)
-            return ("summary", summary.strip(), reference.strip())
-        return ("summary", summary.strip(), None)
+    if "<answer>" in response:
+        answer = response.split("<answer>")[-1].split("</answer>")[0]
+        if "<reference>" in response:
+            reference = response.split("<reference>")[-1].split("</reference>")[0]
+            return ("summary", answer.strip(), reference.strip())
+        return ("summary", answer.strip(), None)
     elif "<search>" in response:
         search_query = response.split("<search>")[1].split("</search>")[0]
         return ("search", search_query)

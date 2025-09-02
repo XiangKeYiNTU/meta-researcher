@@ -1,7 +1,7 @@
 import argparse
 # import sys
 import os
-from datetime import datetime
+# from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 from openai import OpenAI
@@ -15,7 +15,7 @@ from agents.openai.meta_agent import MetaAgent
 from web_explorer.openai.step_executor import StepExecutor
 
 
-from web_explorer.openai.plan_executor import PlanRunner
+# from web_explorer.openai.plan_executor import PlanRunner
 
 from datasets import load_dataset
 
@@ -36,10 +36,15 @@ if __name__ == "__main__":
     # load the GAIA benchmark
     test_set = load_dataset("./dataset/GAIA/GAIA.py", name=f"2023_level{args.level}", data_dir=".", split=args.split, trust_remote_code=True)
 
-    # print(test_set[0].keys())
+    print(test_set[0].keys())
     result_json = []
+    # MAX_QUESTION = 10
+    # cur_test = 0
     for i, task in enumerate(test_set):
+        # if cur_test >= MAX_QUESTION:
+        #     break
         if task['file_path'] == "":
+            # cur_test += 1
             # result = {"task_id": task['task_id'], "question": task['Question'], "file_path": task['file_path'], "step_by_step_results": []}
             result = {"task_id": task['task_id'], "question": task['Question'], "step_by_step_results": []}
             print(f"Running task {i+1}/{len(test_set)}: {task['task_id']}")
@@ -75,7 +80,6 @@ if __name__ == "__main__":
                 finished_steps = meta_agent.plan_graph.get_current_exec_results()
                 step_executor = StepExecutor(
                     current_step=next_step,
-                    question=question,
                     openai_client=openai_client,
                     qwen_client=qwen_client,
                     finished_steps=finished_steps,
@@ -83,11 +87,9 @@ if __name__ == "__main__":
                     model=args.executor_model
                 )
                 step_result = step_executor.run()
+                # todo: verify step results by meta agent
                 result['step_by_step_results'].append(step_result)
-                if "Final answer: " in step_result['result']:
-                    final_answer = step_result['result'].split("Final answer: ")[1].strip()
-                    result['final_answer'] = final_answer
-                    break
+
                 # update graph
                 step_node = meta_agent.plan_graph.exist_step(step=next_step)
                 step_node.execution_result = step_result['result']
