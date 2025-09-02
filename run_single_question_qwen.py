@@ -39,7 +39,7 @@ if __name__ == "__main__":
     streamer = TextStreamer(generator.tokenizer, skip_prompt=True, skip_special_tokens=True)
 
 
-    plan_runner = MetaPlanner(generator=generator, streamer=streamer,question=args.question,file_path=args.file_path)
+    plan_runner = MetaPlanner(generator=generator, streamer=streamer, question=args.question, file_path=args.file_path)
 
     search_tree = plan_runner.run()
     top_plans = search_tree.select_top_plans()
@@ -62,17 +62,13 @@ if __name__ == "__main__":
             generator=generator,
             streamer=streamer,
             current_step=next_step,
-            question=args.question,
             finished_steps=finished_steps,
             file_path=args.file_path,
             qwen_client=qwen_client
         )
 
         step_result = step_executor.run()
-        if "Final answer: " in step_result['result']:
-            final_answer = step_result['result'].split("Final answer: ")[1].strip()
-            print(f"Final answer: {final_answer}")
-            break
+        print(f"Step result: {step_result['result']}\nFound references: {step_result['reference']}\n")
         # update graph
         step_node = meta_agent.plan_graph.exist_step(step=next_step)
         step_node.execution_result = step_result['result']

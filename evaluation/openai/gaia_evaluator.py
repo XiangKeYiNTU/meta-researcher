@@ -6,7 +6,7 @@ from openai import OpenAI
 from datasets import load_dataset
 
 class GAIAEvaluator:
-    def __init__(self, level: int, split: str, client:  OpenAI, evaluator_model: str = "qwen/qwen3-235b-a22b:free"):
+    def __init__(self, level: int, split: str, client:  OpenAI, evaluator_model: str = "deepseek/deepseek-chat-v3.1:free"):
         self.level = level
         self.split = split
         self.evaluator_model = evaluator_model

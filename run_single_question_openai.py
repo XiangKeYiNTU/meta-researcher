@@ -57,7 +57,6 @@ if __name__ == "__main__":
         finished_steps = meta_agent.plan_graph.get_current_exec_results()
         step_executor = StepExecutor(
             current_step=next_step,
-            question=args.question,
             openai_client=openai_client,
             qwen_client=qwen_client,
             finished_steps=finished_steps,
@@ -65,10 +64,7 @@ if __name__ == "__main__":
             model=args.executor_model
         )
         step_result = step_executor.run()
-        if "Final answer: " in step_result['result']:
-            final_answer = step_result['result'].split("Final answer: ")[1].strip()
-            print(f"Final answer: {final_answer}")
-            break
+        print(f"Step result: {step_result['result']}\nFound references: {step_result['reference']}\n")
         # update graph
         step_node = meta_agent.plan_graph.exist_step(step=next_step)
         step_node.execution_result = step_result['result']
