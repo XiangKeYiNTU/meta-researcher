@@ -15,6 +15,7 @@ Your task:
 Instructions:
 - Each step should have a clear goal and instructions on how to achieve it.
 - Provide selected relevant context from question in instructions, since the executor execute step-by-step and can't access the whole question.
+- Do not provide direct step execution process or answers in the instructions.
 - Each step should be able to execute within two searches.
 - The current date is {today.strftime('%B %d, %Y')}, be careful when the question involves time-sensitive information.
 - You must output the steps in order, with the goal of each step surrounded by `<goal>` and `</goal>`, and the instruction surrounded by `<instruct>` and `</instruct>`.
@@ -52,6 +53,7 @@ Your task:
 
 Instructions:
 - Every step must be able to execute within two searches, not redundant and effective in answering the question.
+- Do not provide direct step execution process or answers in the step instructions.
 - If you think the plan is missing a necessary step, which is crucial to acquire the necessary information to answer the question, set the action to "add" and specify the added step's position, goal, and instructions.
 - If you think a step is unnecessary or redundant with no help in answering the question, set the action to "remove" and specify the position of the step to be removed.
 - If you think a step can be misleading or not effective, set the action to "update" and specify the position of the step to be updated, along with the new goal and instructions.
