@@ -115,6 +115,7 @@ def process_single_task(task: Dict, meta_generator, executor_generator, meta_str
             try:
                 plan_graph = PlanGraph()
                 plan_graph.add_plan_list(top_plans)
+                result['mermaid_graph'] = plan_graph.get_mermaid()
                 meta_agent = MetaAgent(plan_graph=plan_graph, question=question, generator=meta_generator, streamer=meta_streamer)
             except Exception as e:
                 raise TaskProcessingError(f"Failed to initialize MetaAgent: {str(e)}", "meta_agent_init")
@@ -167,12 +168,12 @@ def process_single_task(task: Dict, meta_generator, executor_generator, meta_str
                         result['step_by_step_results'].append(step_result)
                         
                         # Check if this step provided a final answer
-                        if step_result.get('result', '') and "Final answer: " in step_result['result']:
-                            final_answer = step_result['result'].split("Final answer: ")[1].strip()
-                            logger.info(f"Task {task_id} completed via step result: {final_answer[:100]}...")
-                            result['final_answer'] = final_answer
-                            result['status'] = 'success'
-                            return result
+                        # if step_result.get('result', '') and "Final answer: " in step_result['result']:
+                        #     final_answer = step_result['result'].split("Final answer: ")[1].strip()
+                        #     logger.info(f"Task {task_id} completed via step result: {final_answer[:100]}...")
+                        #     result['final_answer'] = final_answer
+                        #     result['status'] = 'success'
+                        #     return result
                         
                         # Update graph with step result
                         try:

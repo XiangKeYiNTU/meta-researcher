@@ -101,3 +101,43 @@ class PlanGraph:
                 results.append((node.step, node.execution_result))
 
         return results
+    
+    def get_mermaid(self):
+        """
+        Generate a Mermaid flowchart representation of the plan graph.
+        Returns a string containing the Mermaid diagram syntax.
+        """
+        mermaid_lines = ["flowchart TD"]
+        
+        # Create a mapping from nodes to unique identifiers
+        node_to_id = {}
+        for i, node in enumerate(self.node_list):
+            node_to_id[node] = f"node{i}"
+        
+        # Add node definitions with labels
+        for node, node_id in node_to_id.items():
+            goal = node.step.goal
+            
+            # Special styling for START and END nodes
+            if goal == "START":
+                mermaid_lines.append(f'    {node_id}["🏁 START"]')
+                mermaid_lines.append(f'    style {node_id} fill:#90EE90')
+            elif goal == "END":
+                mermaid_lines.append(f'    {node_id}["🎯 END"]')
+                mermaid_lines.append(f'    style {node_id} fill:#FFB6C1')
+            else:
+                # Regular step nodes
+                # Escape quotes and special characters in the goal text
+                escaped_goal = goal.replace('"', '&quot;').replace('\n', '<br/>')
+                mermaid_lines.append(f'    {node_id}["{escaped_goal}"]')
+                mermaid_lines.append(f'    style {node_id} fill:#E3F2FD')
+        
+        # Add connections between nodes
+        for node in self.node_list:
+            parent_id = node_to_id[node]
+            for child in node.children:
+                child_id = node_to_id[child]
+                mermaid_lines.append(f'    {parent_id} --> {child_id}')
+        
+        return '\n'.join(mermaid_lines)
+

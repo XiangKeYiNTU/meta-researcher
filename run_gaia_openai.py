@@ -13,6 +13,7 @@ from tree_search.openai.meta_planning_runner import MetaPlanningRunner
 from plan_merger.base import PlanGraph
 from agents.openai.meta_agent import MetaAgent
 from web_explorer.openai.step_executor import StepExecutor
+from memory.memory_manager import MemoryManager
 
 
 # from web_explorer.openai.plan_executor import PlanRunner
@@ -38,6 +39,14 @@ if __name__ == "__main__":
 
     print(test_set[0].keys())
     result_json = []
+    # Initialize client
+    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    qwen_client = OpenAI(
+                    base_url="https://openrouter.ai/api/v1",
+                    api_key=os.getenv("OPENROUTER_API_KEY"),
+                )
+    # Initialize memory
+    memory = MemoryManager(memory=[], client=qwen_client)
     # MAX_QUESTION = 10
     # cur_test = 0
     for i, task in enumerate(test_set):
@@ -53,17 +62,13 @@ if __name__ == "__main__":
             file_path = None
 
             # run the meta planning
-            openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-            qwen_client = OpenAI(
-                            base_url="https://openrouter.ai/api/v1",
-                            api_key=os.getenv("OPENROUTER_API_KEY"),
-                        )
             runner = MetaPlanningRunner(question=question, file_path=file_path, model=args.planner_model, openai_client=openai_client)
             search_tree = runner.run()
             top_plans = search_tree.select_top_plans()
             result['top_plans'] = [plan.model_dump() for plan in top_plans]
             plan_graph = PlanGraph()
             plan_graph.add_plan_list(top_plans)
+            result['mermaid_graph'] = plan_graph.get_mermaid()
 
             # Start the execution
             meta_agent = MetaAgent(plan_graph=plan_graph, question=question, openai_client=openai_client, model=args.meta_model)
@@ -90,6 +95,13 @@ if __name__ == "__main__":
                 # todo: verify step results by meta agent
                 result['step_by_step_results'].append(step_result)
 
+                 # Add execution experience into memory
+                memory.add(question=result['question'], 
+                           step=next_step, 
+                           actions=step_result['actions'], 
+                           result=step_result['result'], 
+                           reference=step_result['reference'])
+
                 # update graph
                 step_node = meta_agent.plan_graph.exist_step(step=next_step)
                 step_node.execution_result = step_result['result']
@@ -110,4 +122,7 @@ if __name__ == "__main__":
     # # Save the results to a JSON file
     with open(f"GAIA_level{args.level}_{args.split}_results_openai.json", "w", encoding="utf-8") as f:
         json.dump(result_json, f, indent=4)
+
+    # save current memory
+    memory.serialize()
 

@@ -64,6 +64,7 @@ if __name__ == "__main__":
         result['top_plans'] = [plan.model_dump() for plan in top_plans]
         plan_graph = PlanGraph()
         plan_graph.add_plan_list(top_plans)
+        result['mermaid_graph'] = plan_graph.get_mermaid()
 
         # Start the execution
         meta_agent = MetaAgent(plan_graph=plan_graph, question=question, openai_client=openai_client, model=args.meta_model)
