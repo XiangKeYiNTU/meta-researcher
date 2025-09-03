@@ -70,6 +70,9 @@ if __name__ == "__main__":
         meta_agent = MetaAgent(plan_graph=plan_graph, question=question, openai_client=openai_client, model=args.meta_model)
         while True:
             next_step = meta_agent.generate_next_step()
+            # Meta agent chooses to skip
+            if not next_step:
+                continue
             if next_step.goal == "END":
                 # finalize answer
                 final_answer = meta_agent.finalize_answer()

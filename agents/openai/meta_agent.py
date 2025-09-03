@@ -63,6 +63,12 @@ class MetaAgent:
             )
 
             message, chosen_step = extract_chosen_index(response.choices[0].message.content)
+            if not chosen_step:
+                # Meta agent didn't choose a step, update all current candidates and skip them
+                for candidate_node in next_candidates:
+                    real_node = self.plan_graph.exist_step(candidate_node.step)
+                    real_node.execution_result = "Skipped by meta agent."
+                return None
             if chosen_step == -1:
                 messages.append({"role": "user", "content": message})
                 continue

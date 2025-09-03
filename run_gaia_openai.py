@@ -47,13 +47,13 @@ if __name__ == "__main__":
                 )
     # Initialize memory
     memory = MemoryManager(memory=[], client=qwen_client)
-    # MAX_QUESTION = 10
-    # cur_test = 0
+    MAX_QUESTION = 10
+    cur_test = 0
     for i, task in enumerate(test_set):
-        # if cur_test >= MAX_QUESTION:
-        #     break
+        if cur_test >= MAX_QUESTION:
+            break
         if task['file_path'] == "":
-            # cur_test += 1
+            cur_test += 1
             # result = {"task_id": task['task_id'], "question": task['Question'], "file_path": task['file_path'], "step_by_step_results": []}
             result = {"task_id": task['task_id'], "question": task['Question'], "step_by_step_results": []}
             print(f"Running task {i+1}/{len(test_set)}: {task['task_id']}")
@@ -74,6 +74,9 @@ if __name__ == "__main__":
             meta_agent = MetaAgent(plan_graph=plan_graph, question=question, openai_client=openai_client, model=args.meta_model)
             while True:
                 next_step = meta_agent.generate_next_step()
+                # Meta agent chooses to skip
+                if not next_step:
+                    continue
                 if next_step.goal == "END":
                     # finalize answer
                     final_answer = meta_agent.finalize_answer()
@@ -97,7 +100,7 @@ if __name__ == "__main__":
 
                  # Add execution experience into memory
                 memory.add(question=result['question'], 
-                           step=next_step, 
+                           step=next_step.goal, 
                            actions=step_result['actions'], 
                            result=step_result['result'], 
                            reference=step_result['reference'])
