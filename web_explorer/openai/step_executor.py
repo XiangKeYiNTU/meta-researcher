@@ -12,7 +12,8 @@ from web_explorer.visit_api import visit
 
 
 class StepExecutor:
-    def __init__(self, current_step: Step, openai_client: OpenAI, qwen_client: OpenAI, finished_steps: List[Tuple[Step, str]] = None, file_path: str = None, model: str = "gpt-4o-mini"):
+    def __init__(self, question: str, current_step: Step, openai_client: OpenAI, qwen_client: OpenAI, finished_steps: List[Tuple[Step, str]] = None, file_path: str = None, model: str = "gpt-4o-mini"):
+        self.question = question
         self.finished_steps = finished_steps
         self.current_step = current_step
         self.file_path = file_path
@@ -29,7 +30,8 @@ class StepExecutor:
             for step, answer in self.finished_steps:
                 previous_steps += f"Step: {step.goal}\nAnswer: {answer}\n\n"
 
-        user_query = f"Previous steps and results:\n{previous_steps}Current step: {self.current_step.goal}\n\nInstructions: {self.current_step.instructions}"
+        user_query = f"Question: {self.question}\n\nPrevious steps and results:\n{previous_steps}Current step: {self.current_step.goal}\n\nInstructions: {self.current_step.instructions}\n\n"
+        user_prompt += "Stick to the current step during execution, use <answer> immediately when you gather enough info for the step, don't rush to solve the whole question!"
 
         # Start execution
         extracted_info = []

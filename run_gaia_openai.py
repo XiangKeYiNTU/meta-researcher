@@ -87,6 +87,7 @@ if __name__ == "__main__":
                 print(f"Next step to execute: {next_step.goal}")
                 finished_steps = meta_agent.plan_graph.get_current_exec_results()
                 step_executor = StepExecutor(
+                    question=question,
                     current_step=next_step,
                     openai_client=openai_client,
                     qwen_client=qwen_client,

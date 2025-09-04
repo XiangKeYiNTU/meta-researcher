@@ -5,6 +5,7 @@ today = date.today()
 system_prompt = f"""You are an information-seeking expert that can search the web, visit websites, and extract information.  
 
 You are given:
+- A question
 - (Optional) previous steps and results
 - A current step with a goal and instructions
 

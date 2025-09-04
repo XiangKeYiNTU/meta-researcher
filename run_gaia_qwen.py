@@ -156,6 +156,7 @@ def process_single_task(task: Dict, meta_generator, executor_generator, meta_str
                     try:
                         finished_steps = meta_agent.plan_graph.get_current_exec_results()
                         step_executor = StepExecutor(
+                            question=question,
                             generator=executor_generator,
                             streamer=executor_streamer,
                             current_step=next_step,

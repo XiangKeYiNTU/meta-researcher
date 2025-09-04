@@ -17,8 +17,9 @@ from web_explorer.visit_api import visit
 from document_tools.document_parser import DocumentParser
 
 class StepExecutor:
-    def __init__(self, generator: pipeline, streamer: TextStreamer, current_step: Step, qwen_client: OpenAI, 
+    def __init__(self, question: str, generator: pipeline, streamer: TextStreamer, current_step: Step, qwen_client: OpenAI, 
                  finished_steps: List[Tuple[Step, str]] = None, file_path: str = None, max_context_tokens: int = 16000):
+        self.question = question
         self.generator = generator
         self.streamer = streamer
         self.finished_steps = finished_steps or []
@@ -83,7 +84,8 @@ class StepExecutor:
             for step, answer in self.finished_steps:
                 previous_steps += f"Step: {step.goal}\nAnswer: {answer}\n\n"
 
-        user_prompt = f"Previous steps:\n{previous_steps}Current step: {self.current_step.goal}\n\nInstructions: {self.current_step.instructions}"
+        user_prompt = f"Question: {self.question}\n\nPrevious steps:\n{previous_steps}Current step: {self.current_step.goal}\n\nInstructions: {self.current_step.instructions}\n\n"
+        user_prompt += "Stick to the current step during execution, use <answer> immediately when you gather enough info for the step, don't rush to solve the whole question!"
 
         # Parse file content (truncate if too long)
         if self.file_path:
